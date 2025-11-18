@@ -1,0 +1,500 @@
+// import React, { useEffect, useState } from "react";
+// import axios from "axios";
+// // import { API } from "../App";
+// import { Calendar, Clock, MapPin, Ticket, AlertCircle } from "lucide-react";
+// import { toast } from "sonner";
+
+// const Profile = () => {
+//   const [bookings, setBookings] = useState([]);
+//   const [loading, setLoading] = useState(true);
+
+//   const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+//   useEffect(() => {
+//     fetchBookings();
+//   }, []);
+
+//   const fetchBookings = async () => {
+//     try {
+//       const res = await axios.get(`${API}/bookings`);
+//       setBookings(res.data || []);
+//     } catch (err) {
+//       console.error(err);
+//       toast.error("Failed to load bookings");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const cancelBooking = async (id) => {
+//     if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+
+//     try {
+//       await axios.post(`${API}/bookings/${id}/cancel`);
+//       toast.success("Booking cancelled");
+//       fetchBookings();
+//     } catch (err) {
+//       toast.error(err.response?.data?.detail || "Failed to cancel booking");
+//     }
+//   };
+
+//   const upcoming = bookings.filter(
+//     (b) =>
+//       b.booking_status === "confirmed" &&
+//       new Date(b.show?.show_date) >= new Date()
+//   );
+
+//   const past = bookings.filter(
+//     (b) =>
+//       b.booking_status === "cancelled" ||
+//       new Date(b.show?.show_date) < new Date()
+//   );
+
+//   return (
+//     <div
+//       className="min-h-screen pt-20 px-4 bg-[#0a0a1a] text-white"
+//       data-testid="profile-page"
+//     >
+//       <div className="max-w-7xl mx-auto py-12">
+
+//         {/* USER HEADER */}
+//         <div className="glass p-8 rounded-3xl mb-10">
+//           <h1
+//             className="text-4xl font-bold text-yellow-500 mb-4"
+//             style={{ fontFamily: "Cormorant Garamond, serif" }}
+//           >
+//             My Profile
+//           </h1>
+
+//           <div className="flex flex-col md:flex-row gap-6 mt-6">
+//             {/* Avatar */}
+//             <div className="w-24 h-24 rounded-full bg-yellow-500/20 flex items-center justify-center text-3xl font-bold text-yellow-500">
+//               {user.name?.charAt(0).toUpperCase()}
+//             </div>
+
+//             {/* Details */}
+//             <div>
+//               <h2 className="text-2xl font-semibold">{user.name}</h2>
+//               <p className="text-gray-400">{user.email}</p>
+//               <p className="text-gray-400">
+//                 Role:{" "}
+//                 <span className="text-yellow-500 font-semibold">{user.role}</span>
+//               </p>
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* UPCOMING BOOKINGS */}
+//         <div className="mb-16">
+//           <h2
+//             className="text-3xl font-bold text-yellow-500 mb-6"
+//             style={{ fontFamily: "Cormorant Garamond, serif" }}
+//           >
+//             Upcoming Bookings
+//           </h2>
+
+//           {loading ? (
+//             <div className="flex justify-center py-12">
+//               <div className="loading" />
+//             </div>
+//           ) : upcoming.length > 0 ? (
+//             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+//               {upcoming.map((b) => (
+//                 <div
+//                   key={b.id}
+//                   className="glass p-6 rounded-2xl"
+//                   data-testid={`booking-card-${b.id}`}
+//                 >
+//                   <div className="flex justify-between items-start mb-4">
+//                     <h3 className="text-xl font-bold">{b.movie?.title}</h3>
+//                     <span className="text-xs bg-green-500/20 text-green-400 px-3 py-1 rounded-full">
+//                       {b.booking_status}
+//                     </span>
+//                   </div>
+
+//                   <div className="space-y-3 mb-4">
+//                     {/* Theater */}
+//                     <div className="flex items-start gap-2">
+//                       <MapPin className="w-4 h-4 text-yellow-500 mt-1" />
+//                       <p className="text-sm text-gray-300">
+//                         {b.theater?.name}, {b.theater?.city}
+//                       </p>
+//                     </div>
+
+//                     {/* Date + Time */}
+//                     <div className="flex items-center gap-5">
+//                       <div className="flex items-center gap-2">
+//                         <Calendar className="w-4 h-4 text-yellow-500" />
+//                         <span className="text-sm">{b.show?.show_date}</span>
+//                       </div>
+//                       <div className="flex items-center gap-2">
+//                         <Clock className="w-4 h-4 text-yellow-500" />
+//                         <span className="text-sm">{b.show?.show_time}</span>
+//                       </div>
+//                     </div>
+
+//                     {/* Seats */}
+//                     <div className="flex items-start gap-2">
+//                       <Ticket className="w-4 h-4 text-yellow-500 mt-1" />
+//                       <div className="flex flex-wrap gap-1">
+//                         {b.seats.map((s) => (
+//                           <span
+//                             key={s}
+//                             className="px-2 py-1 bg-yellow-500/20 text-xs rounded"
+//                           >
+//                             {s}
+//                           </span>
+//                         ))}
+//                       </div>
+//                     </div>
+//                   </div>
+
+//                   {/* Footer */}
+//                   <div className="flex justify-between items-center pt-4 border-t border-white/10">
+//                     <div>
+//                       <p className="text-xs text-gray-400">Total Amount</p>
+//                       <p className="text-yellow-500 font-bold text-xl">
+//                         ₹{b.total_amount}
+//                       </p>
+//                     </div>
+
+//                     <button
+//                       onClick={() => cancelBooking(b.id)}
+//                       className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm transition"
+//                     >
+//                       Cancel Booking
+//                     </button>
+//                   </div>
+//                 </div>
+//               ))}
+//             </div>
+//           ) : (
+//             <div className="glass p-12 rounded-2xl text-center text-gray-400">
+//               No upcoming bookings
+//             </div>
+//           )}
+//         </div>
+
+//         {/* PAST BOOKINGS */}
+//         <div>
+//           <h2
+//             className="text-3xl font-bold text-yellow-500 mb-6"
+//             style={{ fontFamily: "Cormorant Garamond, serif" }}
+//           >
+//             Booking History
+//           </h2>
+
+//           {past.length > 0 ? (
+//             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+//               {past.map((b) => (
+//                 <div
+//                   key={b.id}
+//                   className="glass p-6 rounded-2xl opacity-80"
+//                 >
+//                   <div className="flex justify-between items-start mb-4">
+//                     <h3 className="text-xl font-bold">{b.movie?.title}</h3>
+//                     <span
+//                       className={`text-xs px-3 py-1 rounded-full ${
+//                         b.booking_status === "cancelled"
+//                           ? "bg-red-500/20 text-red-400"
+//                           : "bg-gray-500/20 text-gray-300"
+//                       }`}
+//                     >
+//                       {b.booking_status}
+//                     </span>
+//                   </div>
+
+//                   <div className="space-y-3 mb-4">
+//                     <div className="flex items-start gap-2">
+//                       <MapPin className="w-4 h-4 text-gray-500 mt-1" />
+//                       <p className="text-sm text-gray-400">
+//                         {b.theater?.name}, {b.theater?.city}
+//                       </p>
+//                     </div>
+
+//                     <div className="flex items-center gap-5">
+//                       <div className="flex items-center gap-2">
+//                         <Calendar className="w-4 h-4 text-gray-500" />
+//                         <span className="text-sm text-gray-400">
+//                           {b.show?.show_date}
+//                         </span>
+//                       </div>
+
+//                       <div className="flex items-center gap-2">
+//                         <Clock className="w-4 h-4 text-gray-500" />
+//                         <span className="text-sm text-gray-400">
+//                           {b.show?.show_time}
+//                         </span>
+//                       </div>
+//                     </div>
+//                   </div>
+
+//                   <div className="pt-4 border-t border-white/10">
+//                     <p className="text-gray-400 text-sm">
+//                       Amount: ₹{b.total_amount}
+//                     </p>
+//                   </div>
+//                 </div>
+//               ))}
+//             </div>
+//           ) : (
+//             <div className="glass p-12 rounded-2xl text-center text-gray-400">
+//               No booking history
+//             </div>
+//           )}
+//         </div>
+
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default Profile;
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+// import { API } from "../App";
+import { Calendar, Clock, MapPin, Ticket } from "lucide-react";
+import { toast } from "sonner";
+
+const Profile = () => {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const fetchBookings = async () => {
+    try {
+      const res = await axios.get(`${API}/bookings`);
+      setBookings(res.data || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load bookings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelBooking = async (id) => {
+    if (!window.confirm("Are you sure you want to cancel this booking?"))
+      return;
+
+    try {
+      await axios.post(`${API}/bookings/${id}/cancel`);
+      toast.success("Booking cancelled");
+      fetchBookings();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to cancel booking");
+    }
+  };
+
+  const upcoming = bookings.filter(
+    (b) =>
+      b.booking_status === "confirmed" &&
+      new Date(b.show?.show_date) >= new Date()
+  );
+
+  const past = bookings.filter(
+    (b) =>
+      b.booking_status === "cancelled" ||
+      new Date(b.show?.show_date) < new Date()
+  );
+
+  return (
+    <div className="min-h-screen bg-black text-white pt-24 pb-10 px-4 transition-colors duration-500">
+      <div className="max-w-7xl mx-auto">
+        {/* HEADER */}
+        <div className="bg-zinc-900/70 border border-zinc-800 backdrop-blur-lg p-8 rounded-3xl shadow-xl mb-12">
+          <h1
+            className="text-4xl font-bold text-yellow-500 mb-6 drop-shadow-[0_0_10px_rgba(255,200,0,0.4)]"
+            style={{ fontFamily: "Cormorant Garamond, serif" }}
+          >
+            My Profile
+          </h1>
+
+          <div className="flex flex-col md:flex-row gap-8 items-center">
+            {/* Avatar */}
+            <div className="w-28 h-28 rounded-full bg-yellow-500/20 flex items-center justify-center text-4xl font-bold text-yellow-500 shadow-inner">
+              {user.name?.charAt(0).toUpperCase()}
+            </div>
+
+            {/* User Info */}
+            <div>
+              <h2 className="text-3xl font-semibold">{user.name}</h2>
+              <p className="text-gray-400 text-lg">{user.email}</p>
+              <p className="text-gray-400">
+                Role:{" "}
+                <span className="text-yellow-500 font-semibold">
+                  {user.role}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* UPCOMING BOOKINGS */}
+        <div className="mb-16">
+          <h2
+            className="text-3xl font-bold text-yellow-500 mb-6 drop-shadow-[0_0_10px_rgba(255,200,0,0.3)]"
+            style={{ fontFamily: "Cormorant Garamond, serif" }}
+          >
+            Upcoming Bookings
+          </h2>
+
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <div className="loading"></div>
+            </div>
+          ) : upcoming.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              {upcoming.map((b) => (
+                <div
+                  key={b.id}
+                  className="bg-zinc-900/70 border border-zinc-800 p-6 rounded-2xl shadow-xl hover:shadow-[0_0_25px_rgba(255,200,0,0.15)] transition"
+                >
+                  {/* Title */}
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-xl font-bold">{b.movie?.title}</h3>
+                    <span className="text-xs px-3 py-1 rounded-full bg-green-500/20 text-green-400">
+                      {b.booking_status}
+                    </span>
+                  </div>
+
+                  {/* Theater */}
+                  <div className="flex items-start gap-2 mb-2">
+                    <MapPin className="w-4 h-4 text-yellow-500 mt-1" />
+                    <p className="text-gray-300 text-sm">
+                      {b.theater?.name}, {b.theater?.city}
+                    </p>
+                  </div>
+
+                  {/* Date / Time */}
+                  <div className="flex items-center gap-6 mb-2">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-yellow-500" />
+                      <span className="text-sm">{b.show?.show_date}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-yellow-500" />
+                      <span className="text-sm">{b.show?.show_time}</span>
+                    </div>
+                  </div>
+
+                  {/* Seats */}
+                  <div className="flex items-start gap-2 mb-4">
+                    <Ticket className="w-4 h-4 text-yellow-500 mt-1" />
+                    <div className="flex flex-wrap gap-2">
+                      {b.seats.map((s) => (
+                        <span
+                          key={s}
+                          className="px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded text-xs"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="border-t border-zinc-700 pt-4 flex justify-between items-center">
+                    <div>
+                      <p className="text-gray-400 text-xs">Total Amount</p>
+                      <p className="text-2xl font-bold text-yellow-500">
+                        ₹{b.total_amount}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => cancelBooking(b.id)}
+                      className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-zinc-900/70 border border-zinc-800 p-12 rounded-2xl text-center text-gray-400">
+              No upcoming bookings.
+            </div>
+          )}
+        </div>
+
+        {/* PAST BOOKINGS */}
+        <div>
+          <h2
+            className="text-3xl font-bold text-yellow-500 mb-6 drop-shadow-[0_0_10px_rgba(255,200,0,0.3)]"
+            style={{ fontFamily: "Cormorant Garamond, serif" }}
+          >
+            Booking History
+          </h2>
+
+          {past.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              {past.map((b) => (
+                <div
+                  key={b.id}
+                  className="bg-zinc-900/60 border border-zinc-700 p-6 rounded-2xl shadow-md opacity-80"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-xl font-bold">{b.movie?.title}</h3>
+                    <span
+                      className={`text-xs px-3 py-1 rounded-full ${
+                        b.booking_status === "cancelled"
+                          ? "bg-red-500/20 text-red-400"
+                          : "bg-gray-500/20 text-gray-300"
+                      }`}
+                    >
+                      {b.booking_status}
+                    </span>
+                  </div>
+
+                  {/* Theater */}
+                  <div className="flex items-start gap-2 mb-2">
+                    <MapPin className="w-4 h-4 text-gray-500 mt-1" />
+                    <p className="text-gray-400 text-sm">
+                      {b.theater?.name}, {b.theater?.city}
+                    </p>
+                  </div>
+
+                  {/* Date + Time */}
+                  <div className="flex items-center gap-6 mb-2">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-400">
+                        {b.show?.show_date}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-400">
+                        {b.show?.show_time}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-zinc-700 pt-4">
+                    <p className="text-gray-400 text-sm">
+                      Amount: ₹{b.total_amount}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-zinc-900/70 border border-zinc-800 p-12 rounded-2xl text-center text-gray-400">
+              No booking history.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Profile;
