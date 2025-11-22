@@ -1,4 +1,6 @@
 import { createContext, useState, useEffect } from "react";
+import { API } from "../api";
+import axios from "axios";
 
 export const AuthContext = createContext();
 
@@ -34,34 +36,31 @@ export const AuthProvider = ({ children }) => {
   ------------------------------ */
   const login = async (email, password) => {
     setLoading(true);
-    const res = await fetch("http://localhost:5050/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
 
-    const data = await res.json();
-    setLoading(false);
+    try {
+      const { data } = await axios.post("/auth/login", { email, password });
 
-    if (!res.ok) throw new Error(data.message || "Invalid credentials");
+      const decoded = decodeToken(data.token);
 
-    const decoded = decodeToken(data.token);
-    if (!decoded) throw new Error("Failed to decode token");
+      const fullUser = {
+        id: decoded.id,
+        email: decoded.email,
+        role: decoded.role,
+        name: data.user?.name || "",
+      };
 
-    const fullUser = {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role, // 👈 IMPORTANT
-      name: data.user?.name || "",
-    };
+      setUser(fullUser);
+      setToken(data.token);
 
-    setUser(fullUser);
-    setToken(data.token);
+      localStorage.setItem("user", JSON.stringify(fullUser));
+      localStorage.setItem("token", data.token);
 
-    localStorage.setItem("user", JSON.stringify(fullUser));
-    localStorage.setItem("token", data.token);
-
-    return true;
+      return true;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || "Invalid credentials");
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* -----------------------------
@@ -69,34 +68,35 @@ export const AuthProvider = ({ children }) => {
   ------------------------------ */
   const signup = async (name, email, password) => {
     setLoading(true);
-    const res = await fetch("http://localhost:5050/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: name, email, password }),
-    });
 
-    const data = await res.json();
-    setLoading(false);
+    try {
+      const { data } = await axios.post("/auth/signup", {
+        name,
+        email,
+        password,
+      });
 
-    if (!res.ok) throw new Error(data.message || "Signup failed");
+      const decoded = decodeToken(data.token);
 
-    const decoded = decodeToken(data.token);
-    if (!decoded) throw new Error("Failed to decode token");
+      const fullUser = {
+        id: decoded.id,
+        email: decoded.email,
+        role: decoded.role,
+        name,
+      };
 
-    const fullUser = {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role, // 👈 IMPORTANT
-      name,
-    };
+      localStorage.setItem("user", JSON.stringify(fullUser));
+      localStorage.setItem("token", data.token);
 
-    setUser(fullUser);
-    setToken(data.token);
+      setUser(fullUser);
+      setToken(data.token);
 
-    localStorage.setItem("user", JSON.stringify(fullUser));
-    localStorage.setItem("token", data.token);
-
-    return true;
+      return true;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || "Signup failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* -----------------------------
