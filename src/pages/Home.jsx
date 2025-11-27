@@ -1,456 +1,256 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import { Link, useOutletContext } from "react-router-dom";
+import { Play, Info, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
-import Navbar from "../components/Navbar";
 import { API } from "../api";
-import { Link } from "react-router-dom";
-import { Star, Calendar, TrendingUp } from "lucide-react";
 
 export default function Home() {
   const { user } = useContext(AuthContext);
-
+  const { search } = useOutletContext();
   const [movies, setMovies] = useState([]);
-  const [search, setSearch] = useState("");
-  const [darkMode, setDarkMode] = useState(true);
-  const [location, setLocation] = useState({ state: "", city: "" });
 
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        // ❗ FIXED: removed double `/api`
         const res = await fetch(`${API}/movies`);
         const data = await res.json();
         setMovies(data.movies || []);
-      } catch (err) {
-        console.error("Error fetching movies:", err);
+      } catch (error) {
+        console.error("Failed to load movies", error);
       }
     };
+
     fetchMovies();
   }, []);
 
-  const filteredMovies = movies.filter((movie) =>
-    movie.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredMovies = useMemo(() => {
+    if (!search) return movies;
+    const term = search.toLowerCase();
+    return movies.filter((movie) =>
+      movie.title?.toLowerCase().includes(term)
+    );
+  }, [movies, search]);
 
-  return (
-    <div
-      className={`min-h-screen ${
-        darkMode ? "bg-[#0a0a1a] text-white" : "bg-gray-100 text-gray-900"
-      } transition-colors duration-500`}
-    >
-      <Navbar
-        darkMode={darkMode}
-        toggleTheme={() => setDarkMode((p) => !p)}
-        search={search}
-        setSearch={setSearch}
-        location={location}
-        setLocation={setLocation}
-      />
+  const heroMovies = useMemo(() => {
+    const source = filteredMovies.length ? filteredMovies : movies;
+    return source.slice(0, 3);
+  }, [filteredMovies, movies]);
+  const [heroIndex, setHeroIndex] = useState(0);
 
-      {/* HERO SECTION */}
-      <div className="relative h-[600px] flex items-center justify-center pt-20">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-900/20 to-[#0f0c29]"></div>
-        <div className="relative z-10 text-center px-4 max-w-3xl mx-auto">
-          <h1
-            className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 text-yellow-400"
-            style={{ fontFamily: "Cormorant Garamond, serif" }}
+  useEffect(() => {
+    setHeroIndex(0);
+  }, [heroMovies.length]);
+
+  useEffect(() => {
+    if (!heroMovies.length) return;
+    if (heroIndex >= heroMovies.length) {
+      setHeroIndex(0);
+    }
+  }, [heroMovies.length, heroIndex]);
+
+  useEffect(() => {
+    if (heroMovies.length < 2) return undefined;
+    const interval = setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % heroMovies.length);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [heroMovies.length]);
+
+  const heroMovie = heroMovies[heroIndex] || heroMovies[0];
+  const heroImage =
+    heroMovie?.backdrop_url ||
+    heroMovie?.banner_url ||
+    heroMovie?.poster_url ||
+    "https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&w=1600&q=80";
+  const newThisWeek = filteredMovies.slice(0, 8);
+  const trending = filteredMovies.slice(8, 16);
+  const international = filteredMovies.slice(16, 24);
+  const eventMovies = useMemo(() => {
+    const events = movies.filter((movie) =>
+      (Array.isArray(movie.genre) ? movie.genre : [])
+        .map((g) => g?.toLowerCase())
+        .some((g) => g && (g.includes("event") || g.includes("concert")))
+    );
+    return events.length ? events.slice(0, 8) : movies.slice(0, 8);
+  }, [movies]);
+
+  const handleTrailer = (movie) => {
+    if (!movie) return;
+    const trailerUrl = movie.trailer_url?.trim();
+    const url =
+      trailerUrl && trailerUrl.startsWith("http")
+        ? trailerUrl
+        : `https://www.youtube.com/results?search_query=${encodeURIComponent(
+          `${movie.title} trailer`
+        )}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const renderRow = (title, list, ctaLink = "/movies") => {
+    if (!list.length) return null;
+    return (
+      <section className="mt-12">
+        <div className="flex items-center justify-between mb-4 px-4">
+          <h2 className="text-2xl font-semibold tracking-wide">{title}</h2>
+          <Link
+            to={ctaLink}
+            className="text-sm text-gray-300 hover:text-white transition"
           >
-            Experience Cinema <br /> Like Never Before
-          </h1>
-          <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Book your favorite movies instantly. Choose your seats, select
-            showtimes, and enjoy the magic of cinema.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/movies">
-              <button className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-semibold hover:bg-yellow-600 transition">
-                Browse Movies
-              </button>
-            </Link>
-
-            <Link to="/signup">
-              <button className="border border-yellow-500 px-6 py-3 rounded-xl hover:bg-yellow-600 hover:text-black transition">
-                Get Started
-              </button>
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* WHY CHOOSE US */}
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        <h2
-          className="text-4xl font-bold text-center mb-12 text-yellow-400"
-          style={{ fontFamily: "Cormorant Garamond, serif" }}
-        >
-          Why Choose Us?
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div
-            className={`p-8 rounded-2xl text-center shadow-lg ${
-              darkMode ? "bg-[#131327]" : "bg-white"
-            }`}
-          >
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/20 flex items-center justify-center">
-              <Calendar className="w-8 h-8 text-yellow-500" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Easy Booking</h3>
-            <p className="text-gray-400">
-              Select your movie, choose your seats, and book instantly.
-            </p>
-          </div>
-
-          <div
-            className={`p-8 rounded-2xl text-center shadow-lg ${
-              darkMode ? "bg-[#131327]" : "bg-white"
-            }`}
-          >
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/20 flex items-center justify-center">
-              <Star className="w-8 h-8 text-yellow-500" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Premium Experience</h3>
-            <p className="text-gray-400">
-              Smooth booking with real-time seat updates.
-            </p>
-          </div>
-
-          <div
-            className={`p-8 rounded-2xl text-center shadow-lg ${
-              darkMode ? "bg-[#131327]" : "bg-white"
-            }`}
-          >
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/20 flex items-center justify-center">
-              <TrendingUp className="w-8 h-8 text-yellow-500" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Latest Movies</h3>
-            <p className="text-gray-400">
-              Access the newest blockbusters & timeless classics.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* FEATURED MOVIES */}
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        <div className="flex justify-between items-center mb-8">
-          <h2
-            className="text-4xl font-bold text-yellow-400"
-            style={{ fontFamily: "Cormorant Garamond, serif" }}
-          >
-            Featured Movies
-          </h2>
-
-          <Link to="/movies">
-            <button className="border border-yellow-500 px-4 py-2 rounded-lg hover:bg-yellow-600 hover:text-black transition">
-              View All
-            </button>
+            View all
           </Link>
         </div>
-
-        {filteredMovies.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredMovies.map((movie) => (
-              <Link to={`/movies/${movie.id}`} key={movie.id}>
-                <div
-                  className={`relative rounded-2xl overflow-hidden shadow-xl h-96 group ${
-                    darkMode ? "bg-[#131327]" : "bg-white"
-                  }`}
-                >
-                  <img
-                    src={movie.poster_url}
-                    alt={movie.title}
-                    className="w-full h-full object-cover rounded-2xl"
-                  />
-
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-4 rounded-2xl">
-                    <h3 className="text-xl font-bold mb-1">{movie.title}</h3>
-
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                        {movie.rating}
-                      </span>
-                      <span>{movie.language}</span>
-                      <span>{movie.duration} min</span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {Array.isArray(movie.genre)
-                        ? movie.genre.slice(0, 2).map((g) => (
-                            <span
-                              key={g}
-                              className="px-3 py-1 bg-yellow-500/20 rounded-full text-xs"
-                            >
-                              {g}
-                            </span>
-                          ))
-                        : null}
-                    </div>
-                  </div>
-                </div>
+        <div className="relative">
+          <div className="flex space-x-4 overflow-x-auto px-4 pb-2 netflix-scroll">
+            {list.map((movie) => (
+              <Link
+                key={movie.id}
+                to={`/movies/${movie.id}`}
+                className="flex-shrink-0 w-48 h-64 rounded-lg overflow-hidden bg-zinc-900 border border-white/5 hover:border-white/20 transition"
+              >
+                <img
+                  src={
+                    movie.poster_url ||
+                    "https://via.placeholder.com/300x450?text=No+Poster"
+                  }
+                  alt={movie.title}
+                  className="w-full h-full object-cover"
+                />
               </Link>
             ))}
           </div>
-        ) : (
-          <p className="text-gray-400 text-center text-lg mt-10">
-            No movies available.
-          </p>
-        )}
-      </div>
-
-      {/* CTA SECTION */}
-      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
-        <div
-          className={`p-12 rounded-3xl shadow-lg ${
-            darkMode ? "bg-[#131327]" : "bg-white"
-          }`}
-        >
-          <h2
-            className="text-4xl font-bold mb-4 text-yellow-400"
-            style={{ fontFamily: "Cormorant Garamond, serif" }}
-          >
-            Ready to Book Your Next Movie?
-          </h2>
-          <p className="text-gray-300 text-lg mb-8">
-            Join thousands of movie lovers who trust MovieDay.
-          </p>
-
-          <Link to="/signup">
-            <button className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-semibold hover:bg-yellow-600 transition">
-              Sign Up Now
-            </button>
-          </Link>
         </div>
-      </div>
+      </section>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-[#010101] text-white">
+      {/* HERO */}
+      <section className="relative h-[85vh] w-full overflow-hidden">
+        {heroMovie && (
+          <>
+            <img
+              src={heroImage}
+              alt={heroMovie.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#010101] via-transparent to-transparent" />
+            <div className="relative z-10 h-full flex flex-col justify-center px-6 lg:px-16 space-y-6 max-w-2xl transition-all duration-700">
+              <p className="uppercase text-red-500 tracking-[0.5em] text-xs">
+                Featured
+              </p>
+              <h1 className="text-5xl sm:text-6xl font-black drop-shadow-xl">
+                {heroMovie.title}
+              </h1>
+              <div className="flex items-center gap-4 text-gray-200 text-sm">
+                <span className="flex items-center gap-1">
+                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  {heroMovie.rating || "N/A"}
+                </span>
+                <span>{heroMovie.language}</span>
+                <span>{heroMovie.duration} min</span>
+              </div>
+              <p className="text-lg text-gray-200 line-clamp-3">
+                {heroMovie.description}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  to={heroMovie ? `/movies/${heroMovie.id}` : "/movies"}
+                  className="inline-flex items-center gap-2 bg-white text-black px-6 py-3 rounded-md font-semibold hover:bg-gray-200 transition"
+                >
+                  <Play className="w-5 h-5" /> Play
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => handleTrailer(heroMovie)}
+                  className="inline-flex items-center gap-2 bg-white/20 backdrop-blur px-6 py-3 rounded-md font-semibold hover:bg-white/30 transition"
+                >
+                  <Info className="w-5 h-5" /> Watch Trailer
+                </button>
+              </div>
+              {heroMovies.length > 1 && (
+                <div className="absolute bottom-10 right-10 flex gap-2">
+                  {heroMovies.map((movie, idx) => (
+                    <button
+                      key={movie.id || idx}
+                      onClick={() => setHeroIndex(idx)}
+                      className={`w-3 h-3 rounded-full transition ${idx === heroIndex
+                        ? "bg-white"
+                        : "bg-white/30 hover:bg-white/60"
+                        }`}
+                      aria-label={`Show ${movie.title}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {heroMovies.length > 1 && (
+              <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 pointer-events-none">
+                <button
+                  className="pointer-events-auto bg-black/40 hover:bg-black/70 text-white rounded-full p-2 border border-white/20 transition"
+                  onClick={() =>
+                    setHeroIndex((prev) =>
+                      prev === 0 ? heroMovies.length - 1 : prev - 1
+                    )
+                  }
+                  aria-label="Previous featured title"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  className="pointer-events-auto bg-black/40 hover:bg-black/70 text-white rounded-full p-2 border border-white/20 transition"
+                  onClick={() =>
+                    setHeroIndex((prev) => (prev + 1) % heroMovies.length)
+                  }
+                  aria-label="Next featured title"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </section>
+
+      <main className="-mt-24 relative z-20 bg-gradient-to-b from-[#010101]/80 via-[#010101] to-black pt-10 pb-20">
+        {heroMovie && (
+          <div className="px-6 lg:px-12">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg text-gray-300 uppercase tracking-[0.3em]">
+                Because you watched
+              </h2>
+              {!user && (
+                <Link
+                  to="/signup"
+                  className="text-sm text-white border border-white/40 px-4 py-2 rounded-full hover:bg-white hover:text-black transition"
+                >
+                  Join now
+                </Link>
+              )}
+            </div>
+            <div className="mt-4 flex gap-4 text-sm text-gray-400">
+              {Array.isArray(heroMovie.genre) &&
+                heroMovie.genre.slice(0, 3).map((genre) => (
+                  <span
+                    key={genre}
+                    className="px-3 py-1 rounded-full bg-white/10 border border-white/10"
+                  >
+                    {genre}
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-10 space-y-10">
+          {renderRow("New this week", newThisWeek)}
+          {renderRow("Trending Now", trending)}
+          {renderRow("International Hits", international)}
+          {renderRow("Live Events & Concerts", eventMovies, "/events")}
+        </div>
+      </main>
     </div>
   );
 }
-
-// import React, { useContext, useEffect, useState } from "react";
-// import { AuthContext } from "../context/AuthContext";
-// import Navbar from "../components/Navbar";
-// import { API } from "../api";
-// import { Link } from "react-router-dom";
-// import { Star, Calendar, TrendingUp } from "lucide-react";
-
-// export default function Home() {
-//   const { user } = useContext(AuthContext);
-
-//   const [movies, setMovies] = useState([]);
-//   const [search, setSearch] = useState("");
-//   const [darkMode, setDarkMode] = useState(true);
-//   const [location, setLocation] = useState({ state: "", city: "" });
-
-//   useEffect(() => {
-//     const fetchMovies = async () => {
-//       try {
-//         const res = await fetch(`${API}/api/movies`);
-//         const data = await res.json();
-//         setMovies(data.movies || []);
-//       } catch (err) {
-//         console.error("Error fetching movies:", err);
-//       }
-//     };
-//     fetchMovies();
-//   }, []);
-
-//   const filteredMovies = movies.filter((movie) =>
-//     movie.title.toLowerCase().includes(search.toLowerCase())
-//   );
-
-//   return (
-//     <div
-//       className={`min-h-screen ${
-//         darkMode ? "bg-[#0a0a1a] text-white" : "bg-gray-100 text-gray-900"
-//       } transition-colors duration-500`}
-//     >
-//       <Navbar
-//         darkMode={darkMode}
-//         toggleTheme={() => setDarkMode((p) => !p)}
-//         search={search}
-//         setSearch={setSearch}
-//         location={location}
-//         setLocation={setLocation}
-//       />
-
-//       {/* HERO SECTION */}
-//       <div className="relative h-[600px] flex items-center justify-center pt-20">
-//         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-900/20 to-[#0f0c29]"></div>
-//         <div className="relative z-10 text-center px-4 max-w-3xl mx-auto">
-//           <h1
-//             className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 text-yellow-400"
-//             style={{ fontFamily: "Cormorant Garamond, serif" }}
-//           >
-//             Experience Cinema <br /> Like Never Before
-//           </h1>
-//           <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-//             Book your favorite movies instantly. Choose your seats, select
-//             showtimes, and enjoy the magic of cinema.
-//           </p>
-
-//           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-//             <Link to="/movies">
-//               <button className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-semibold hover:bg-yellow-600 transition">
-//                 Browse Movies
-//               </button>
-//             </Link>
-
-//             <Link to="/signup">
-//               <button className="border border-yellow-500 px-6 py-3 rounded-xl hover:bg-yellow-600 hover:text-black transition">
-//                 Get Started
-//               </button>
-//             </Link>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* WHY CHOOSE US */}
-//       <div className="max-w-7xl mx-auto px-6 py-16">
-//         <h2
-//           className="text-4xl font-bold text-center mb-12 text-yellow-400"
-//           style={{ fontFamily: "Cormorant Garamond, serif" }}
-//         >
-//           Why Choose Us?
-//         </h2>
-
-//         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-//           <div
-//             className={`p-8 rounded-2xl text-center shadow-lg ${
-//               darkMode ? "bg-[#131327]" : "bg-white"
-//             }`}
-//           >
-//             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/20 flex items-center justify-center">
-//               <Calendar className="w-8 h-8 text-yellow-500" />
-//             </div>
-//             <h3 className="text-xl font-semibold mb-3">Easy Booking</h3>
-//             <p className="text-gray-400">
-//               Select your movie, choose your seats, and book instantly.
-//             </p>
-//           </div>
-
-//           <div
-//             className={`p-8 rounded-2xl text-center shadow-lg ${
-//               darkMode ? "bg-[#131327]" : "bg-white"
-//             }`}
-//           >
-//             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/20 flex items-center justify-center">
-//               <Star className="w-8 h-8 text-yellow-500" />
-//             </div>
-//             <h3 className="text-xl font-semibold mb-3">Premium Experience</h3>
-//             <p className="text-gray-400">
-//               Smooth booking with real-time seat updates.
-//             </p>
-//           </div>
-
-//           <div
-//             className={`p-8 rounded-2xl text-center shadow-lg ${
-//               darkMode ? "bg-[#131327]" : "bg-white"
-//             }`}
-//           >
-//             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/20 flex items-center justify-center">
-//               <TrendingUp className="w-8 h-8 text-yellow-500" />
-//             </div>
-//             <h3 className="text-xl font-semibold mb-3">Latest Movies</h3>
-//             <p className="text-gray-400">
-//               Access the newest blockbusters & timeless classics.
-//             </p>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* FEATURED MOVIES */}
-//       <div className="max-w-7xl mx-auto px-6 py-16">
-//         <div className="flex justify-between items-center mb-8">
-//           <h2
-//             className="text-4xl font-bold text-yellow-400"
-//             style={{ fontFamily: "Cormorant Garamond, serif" }}
-//           >
-//             Featured Movies
-//           </h2>
-
-//           <Link to="/movies">
-//             <button className="border border-yellow-500 px-4 py-2 rounded-lg hover:bg-yellow-600 hover:text-black transition">
-//               View All
-//             </button>
-//           </Link>
-//         </div>
-
-//         {filteredMovies.length > 0 ? (
-//           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-//             {filteredMovies.map((movie) => (
-//               <Link to={`/movies/${movie.id}`} key={movie.id}>
-//                 <div
-//                   className={`relative rounded-2xl overflow-hidden shadow-xl h-96 group ${
-//                     darkMode ? "bg-[#131327]" : "bg-white"
-//                   }`}
-//                 >
-//                   <img
-//                     src={movie.poster_url}
-//                     alt={movie.title}
-//                     className="w-full h-full object-cover rounded-2xl"
-//                   />
-
-//                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-4 rounded-2xl">
-//                     <h3 className="text-xl font-bold mb-1">{movie.title}</h3>
-
-//                     <div className="flex items-center gap-4 text-sm">
-//                       <span className="flex items-center gap-1">
-//                         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-//                         {movie.rating}
-//                       </span>
-//                       <span>{movie.language}</span>
-//                       <span>{movie.duration} min</span>
-//                     </div>
-
-//                     <div className="flex flex-wrap gap-2 mt-3">
-//                       {Array.isArray(movie.genre)
-//                         ? movie.genre.slice(0, 2).map((g) => (
-//                             <span
-//                               key={g}
-//                               className="px-3 py-1 bg-yellow-500/20 rounded-full text-xs"
-//                             >
-//                               {g}
-//                             </span>
-//                           ))
-//                         : null}
-//                     </div>
-//                   </div>
-//                 </div>
-//               </Link>
-//             ))}
-//           </div>
-//         ) : (
-//           <p className="text-gray-400 text-center text-lg mt-10">
-//             No movies available.
-//           </p>
-//         )}
-//       </div>
-
-//       {/* CTA SECTION */}
-//       <div className="max-w-4xl mx-auto px-6 py-20 text-center">
-//         <div
-//           className={`p-12 rounded-3xl shadow-lg ${
-//             darkMode ? "bg-[#131327]" : "bg-white"
-//           }`}
-//         >
-//           <h2
-//             className="text-4xl font-bold mb-4 text-yellow-400"
-//             style={{ fontFamily: "Cormorant Garamond, serif" }}
-//           >
-//             Ready to Book Your Next Movie?
-//           </h2>
-//           <p className="text-gray-300 text-lg mb-8">
-//             Join thousands of movie lovers who trust MovieDay.
-//           </p>
-
-//           <Link to="/signup">
-//             <button className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-semibold hover:bg-yellow-600 transition">
-//               Sign Up Now
-//             </button>
-//           </Link>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }

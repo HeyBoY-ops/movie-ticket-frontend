@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-// import { API } from "../App";
+import axios from "../api";
 import { Calendar, Clock, MapPin, Ticket } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,7 +15,7 @@ const Profile = () => {
 
   const fetchBookings = async () => {
     try {
-      const res = await axios.get(`${API}/bookings`);
+      const res = await axios.get(`/bookings`);
       setBookings(res.data || []);
     } catch (err) {
       console.error(err);
@@ -31,7 +30,7 @@ const Profile = () => {
       return;
 
     try {
-      await axios.post(`${API}/bookings/${id}/cancel`);
+      await axios.post(`/bookings/${id}/cancel`);
       toast.success("Booking cancelled");
       fetchBookings();
     } catch (err) {
@@ -57,7 +56,7 @@ const Profile = () => {
         {/* HEADER */}
         <div className="bg-zinc-900/70 border border-zinc-800 backdrop-blur-lg p-8 rounded-3xl shadow-xl mb-12">
           <h1
-            className="text-4xl font-bold text-yellow-500 mb-6 drop-shadow-[0_0_10px_rgba(255,200,0,0.4)]"
+            className="text-4xl font-bold text-red-500 mb-6 drop-shadow-[0_0_10px_rgba(220,38,38,0.4)]"
             style={{ fontFamily: "Cormorant Garamond, serif" }}
           >
             My Profile
@@ -65,7 +64,7 @@ const Profile = () => {
 
           <div className="flex flex-col md:flex-row gap-8 items-center">
             {/* Avatar */}
-            <div className="w-28 h-28 rounded-full bg-yellow-500/20 flex items-center justify-center text-4xl font-bold text-yellow-500 shadow-inner">
+            <div className="w-28 h-28 rounded-full bg-red-600/20 flex items-center justify-center text-4xl font-bold text-red-500 shadow-inner">
               {user.name?.charAt(0).toUpperCase()}
             </div>
 
@@ -75,7 +74,7 @@ const Profile = () => {
               <p className="text-gray-400 text-lg">{user.email}</p>
               <p className="text-gray-400">
                 Role:{" "}
-                <span className="text-yellow-500 font-semibold">
+                <span className="text-red-500 font-semibold">
                   {user.role}
                 </span>
               </p>
@@ -86,7 +85,7 @@ const Profile = () => {
         {/* UPCOMING BOOKINGS */}
         <div className="mb-16">
           <h2
-            className="text-3xl font-bold text-yellow-500 mb-6 drop-shadow-[0_0_10px_rgba(255,200,0,0.3)]"
+            className="text-3xl font-bold text-red-500 mb-6 drop-shadow-[0_0_15px_rgba(229,9,20,0.35)]"
             style={{ fontFamily: "Cormorant Garamond, serif" }}
           >
             Upcoming Bookings
@@ -101,11 +100,11 @@ const Profile = () => {
               {upcoming.map((b) => (
                 <div
                   key={b.id}
-                  className="bg-zinc-900/70 border border-zinc-800 p-6 rounded-2xl shadow-xl hover:shadow-[0_0_25px_rgba(255,200,0,0.15)] transition"
+                  className="bg-zinc-900/70 border border-zinc-800 p-6 rounded-2xl shadow-xl hover:shadow-[0_0_25px_rgba(220,38,38,0.15)] transition"
                 >
                   {/* Title */}
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold">{b.movie?.title}</h3>
+                    <h3 className="text-xl font-bold">{b.show?.movie?.title}</h3>
                     <span className="text-xs px-3 py-1 rounded-full bg-green-500/20 text-green-400">
                       {b.booking_status}
                     </span>
@@ -113,32 +112,36 @@ const Profile = () => {
 
                   {/* Theater */}
                   <div className="flex items-start gap-2 mb-2">
-                    <MapPin className="w-4 h-4 text-yellow-500 mt-1" />
+                    <MapPin className="w-4 h-4 text-red-500 mt-1" />
                     <p className="text-gray-300 text-sm">
-                      {b.theater?.name}, {b.theater?.city}
+                      {b.show?.theater?.name}, {b.show?.theater?.city}
                     </p>
                   </div>
 
                   {/* Date / Time */}
                   <div className="flex items-center gap-6 mb-2">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-yellow-500" />
-                      <span className="text-sm">{b.show?.show_date}</span>
+                      <Calendar className="w-4 h-4 text-red-500" />
+                      <span className="text-sm">
+                        {b.show?.show_date
+                          ? new Date(b.show.show_date).toLocaleDateString()
+                          : "N/A"}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-yellow-500" />
+                      <Clock className="w-4 h-4 text-red-500" />
                       <span className="text-sm">{b.show?.show_time}</span>
                     </div>
                   </div>
 
                   {/* Seats */}
                   <div className="flex items-start gap-2 mb-4">
-                    <Ticket className="w-4 h-4 text-yellow-500 mt-1" />
+                    <Ticket className="w-4 h-4 text-red-500 mt-1" />
                     <div className="flex flex-wrap gap-2">
                       {b.seats.map((s) => (
                         <span
                           key={s}
-                          className="px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded text-xs"
+                          className="px-2 py-1 bg-red-600/20 text-red-300 rounded text-xs"
                         >
                           {s}
                         </span>
@@ -150,7 +153,7 @@ const Profile = () => {
                   <div className="border-t border-zinc-700 pt-4 flex justify-between items-center">
                     <div>
                       <p className="text-gray-400 text-xs">Total Amount</p>
-                      <p className="text-2xl font-bold text-yellow-500">
+                      <p className="text-2xl font-bold text-red-500">
                         ₹{b.total_amount}
                       </p>
                     </div>
@@ -175,7 +178,7 @@ const Profile = () => {
         {/* PAST BOOKINGS */}
         <div>
           <h2
-            className="text-3xl font-bold text-yellow-500 mb-6 drop-shadow-[0_0_10px_rgba(255,200,0,0.3)]"
+            className="text-3xl font-bold text-red-500 mb-6 drop-shadow-[0_0_15px_rgba(229,9,20,0.35)]"
             style={{ fontFamily: "Cormorant Garamond, serif" }}
           >
             Booking History
@@ -186,49 +189,68 @@ const Profile = () => {
               {past.map((b) => (
                 <div
                   key={b.id}
-                  className="bg-zinc-900/60 border border-zinc-700 p-6 rounded-2xl shadow-md opacity-80"
+                  className="bg-zinc-900/70 border border-zinc-800 p-6 rounded-2xl shadow-xl hover:shadow-[0_0_25px_rgba(220,38,38,0.15)] transition opacity-80 hover:opacity-100"
                 >
+                  {/* Title */}
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold">{b.movie?.title}</h3>
+                    <h3 className="text-xl font-bold text-white truncate pr-4" title={b.show?.movie?.title}>
+                      {b.show?.movie?.title || "Event / Movie"}
+                    </h3>
                     <span
-                      className={`text-xs px-3 py-1 rounded-full ${
+                      className={`text-xs px-3 py-1 rounded-full border ${
                         b.booking_status === "cancelled"
-                          ? "bg-red-500/20 text-red-400"
-                          : "bg-gray-500/20 text-gray-300"
+                          ? "bg-red-500/10 border-red-500 text-red-500"
+                          : "bg-green-500/10 border-green-500 text-green-500"
                       }`}
                     >
                       {b.booking_status}
                     </span>
                   </div>
 
-                  {/* Theater */}
+                  {/* Theater / Venue */}
                   <div className="flex items-start gap-2 mb-2">
-                    <MapPin className="w-4 h-4 text-gray-500 mt-1" />
-                    <p className="text-gray-400 text-sm">
-                      {b.theater?.name}, {b.theater?.city}
+                    <MapPin className="w-4 h-4 text-red-500 mt-1" />
+                    <p className="text-gray-300 text-sm">
+                      {b.show?.theater?.name}, {b.show?.theater?.city}
                     </p>
                   </div>
 
-                  {/* Date + Time */}
+                  {/* Date / Time */}
                   <div className="flex items-center gap-6 mb-2">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-400">
-                        {b.show?.show_date}
+                      <Calendar className="w-4 h-4 text-red-500" />
+                      <span className="text-sm text-gray-300">
+                         {b.show?.show_date ? new Date(b.show.show_date).toLocaleDateString() : "N/A"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-400">
-                        {b.show?.show_time}
-                      </span>
+                      <Clock className="w-4 h-4 text-red-500" />
+                      <span className="text-sm text-gray-300">{b.show?.show_time}</span>
                     </div>
                   </div>
 
-                  <div className="border-t border-zinc-700 pt-4">
-                    <p className="text-gray-400 text-sm">
-                      Amount: ₹{b.total_amount}
-                    </p>
+                  {/* Seats */}
+                  <div className="flex items-start gap-2 mb-4">
+                    <Ticket className="w-4 h-4 text-red-500 mt-1" />
+                    <div className="flex flex-wrap gap-2">
+                      {b.seats && b.seats.map((s) => (
+                        <span
+                          key={s}
+                          className="px-2 py-1 bg-red-600/20 text-red-300 rounded text-xs"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-zinc-700 pt-4 flex justify-between items-center">
+                    <div>
+                      <p className="text-gray-400 text-xs">Total Amount</p>
+                      <p className="text-2xl font-bold text-red-500">
+                        ₹{b.total_amount}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}

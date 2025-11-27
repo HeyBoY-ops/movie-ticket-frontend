@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { API } from "../api";
+import axios from "../api"; // Use the configured axios instance
 import {
   Plus,
   Edit,
@@ -112,14 +111,12 @@ const AdminDashboard = () => {
           genre: formData.genre
             .split(",")
             .map((g) => g.trim())
-            .filter((g) => g !== "")
-            .join(","),
+            .filter((g) => g !== ""), // Send as Array
 
           cast: formData.cast
             .split(",")
             .map((c) => c.trim())
-            .filter((c) => c !== "")
-            .join(","),
+            .filter((c) => c !== ""), // Send as Array
 
           release_date: formData.release_date
             ? new Date(formData.release_date).toISOString()
@@ -149,7 +146,7 @@ const AdminDashboard = () => {
           placeholder="Movie Title"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          className="input-field"
+          className="input-field w-full"
           required
         />
 
@@ -160,7 +157,7 @@ const AdminDashboard = () => {
           onChange={(e) =>
             setFormData({ ...formData, description: e.target.value })
           }
-          className="input-field"
+          className="input-field w-full"
           required
         />
 
@@ -168,7 +165,7 @@ const AdminDashboard = () => {
           placeholder="Genres (comma separated)"
           value={formData.genre}
           onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-          className="input-field"
+          className="input-field w-full"
           required
         />
 
@@ -179,7 +176,7 @@ const AdminDashboard = () => {
             onChange={(e) =>
               setFormData({ ...formData, language: e.target.value })
             }
-            className="input-field"
+            className="input-field w-full"
             required
           />
 
@@ -189,7 +186,7 @@ const AdminDashboard = () => {
             onChange={(e) =>
               setFormData({ ...formData, duration: e.target.value })
             }
-            className="input-field"
+            className="input-field w-full"
             required
           />
         </div>
@@ -201,7 +198,7 @@ const AdminDashboard = () => {
             onChange={(e) =>
               setFormData({ ...formData, rating: e.target.value })
             }
-            className="input-field"
+            className="input-field w-full"
             required
           />
 
@@ -211,7 +208,7 @@ const AdminDashboard = () => {
             onChange={(e) =>
               setFormData({ ...formData, release_date: e.target.value })
             }
-            className="input-field"
+            className="input-field w-full"
             required
           />
         </div>
@@ -222,7 +219,7 @@ const AdminDashboard = () => {
           onChange={(e) =>
             setFormData({ ...formData, poster_url: e.target.value })
           }
-          className="input-field"
+          className="input-field w-full"
           required
         />
 
@@ -232,7 +229,7 @@ const AdminDashboard = () => {
           onChange={(e) =>
             setFormData({ ...formData, trailer_url: e.target.value })
           }
-          className="input-field"
+          className="input-field w-full"
         />
 
         <input
@@ -241,14 +238,14 @@ const AdminDashboard = () => {
           onChange={(e) =>
             setFormData({ ...formData, director: e.target.value })
           }
-          className="input-field"
+          className="input-field w-full"
         />
 
         <input
           placeholder="Cast (comma separated)"
           value={formData.cast}
           onChange={(e) => setFormData({ ...formData, cast: e.target.value })}
-          className="input-field"
+          className="input-field w-full"
         />
 
         <div className="flex gap-3">
@@ -305,7 +302,7 @@ const AdminDashboard = () => {
           placeholder="Theater Name"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="input-field"
+          className="input-field w-full"
           required
         />
 
@@ -313,7 +310,7 @@ const AdminDashboard = () => {
           placeholder="City"
           value={formData.city}
           onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-          className="input-field"
+          className="input-field w-full"
           required
         />
 
@@ -323,7 +320,7 @@ const AdminDashboard = () => {
           onChange={(e) =>
             setFormData({ ...formData, address: e.target.value })
           }
-          className="input-field"
+          className="input-field w-full"
           required
         />
 
@@ -333,7 +330,7 @@ const AdminDashboard = () => {
           onChange={(e) =>
             setFormData({ ...formData, total_screens: e.target.value })
           }
-          className="input-field"
+          className="input-field w-full"
           required
         />
 
@@ -423,7 +420,7 @@ const AdminDashboard = () => {
           onChange={(e) =>
             setFormData({ ...formData, movie_id: e.target.value })
           }
-          className="input-field"
+          className="input-field w-full"
           required
         >
           <option value="">Select Movie</option>
@@ -439,7 +436,7 @@ const AdminDashboard = () => {
           onChange={(e) =>
             setFormData({ ...formData, theater_id: e.target.value })
           }
-          className="input-field"
+          className="input-field w-full"
           required
         >
           <option value="">Select Theater</option>
@@ -457,7 +454,7 @@ const AdminDashboard = () => {
             onChange={(e) =>
               setFormData({ ...formData, screen_number: e.target.value })
             }
-            className="input-field"
+            className="input-field w-full"
             required
           />
 
@@ -467,7 +464,7 @@ const AdminDashboard = () => {
             onChange={(e) =>
               setFormData({ ...formData, total_seats: e.target.value })
             }
-            className="input-field"
+            className="input-field w-full"
             required
           />
         </div>
@@ -479,7 +476,7 @@ const AdminDashboard = () => {
             onChange={(e) =>
               setFormData({ ...formData, show_date: e.target.value })
             }
-            className="input-field"
+            className="input-field w-full"
             required
           />
 
@@ -489,7 +486,7 @@ const AdminDashboard = () => {
             onChange={(e) =>
               setFormData({ ...formData, show_time: e.target.value })
             }
-            className="input-field"
+            className="input-field w-full"
             required
           />
         </div>
@@ -498,7 +495,7 @@ const AdminDashboard = () => {
           placeholder="Price (₹)"
           value={formData.price}
           onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-          className="input-field"
+          className="input-field w-full"
           required
         />
 
@@ -525,14 +522,14 @@ const AdminDashboard = () => {
   // MAIN RETURN
   // -------------------------
   return (
-    <div className="min-h-screen flex bg-[#090c14] text-white">
+    <div className="min-h-screen flex bg-black text-white font-sans">
       {/* ---------------- Sidebar ---------------- */}
-      <aside className="w-64 p-6 border-r border-white/10 bg-[#0c0f1c]/80 backdrop-blur-xl sticky top-0 h-screen">
+      <aside className="w-64 p-6 border-r border-white/10 bg-[#000000] sticky top-0 h-screen">
         <h1
-          className="text-3xl font-bold mb-10 text-yellow-500"
-          style={{ fontFamily: "Cormorant Garamond, serif" }}
+          className="text-3xl font-bold mb-10 text-red-600 tracking-wider"
+          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
         >
-          Admin Panel
+          MOVIEDAY
         </h1>
 
         <nav className="space-y-3">
@@ -569,8 +566,7 @@ const AdminDashboard = () => {
       <main className="flex-1 p-10">
         <div className="flex justify-between items-center mb-8">
           <h2
-            className="text-4xl font-bold text-yellow-500"
-            style={{ fontFamily: "Cormorant Garamond, serif" }}
+            className="text-4xl font-bold text-white tracking-tight"
           >
             {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
           </h2>
@@ -628,7 +624,7 @@ const AdminDashboard = () => {
         <div className="modal-container">
           <div className="modal-box">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-yellow-500">
+              <h2 className="text-2xl font-bold text-red-500">
                 {editingItem ? "Edit" : "Add"} {activeTab.slice(0, -1)}
               </h2>
 
@@ -675,12 +671,14 @@ const MoviesTable = ({
       {movies.map((m) => (
         <tr key={m.id}>
           <td>{m.title}</td>
-          <td>{m.genre?.join(", ")}</td>
+          <td>
+            {Array.isArray(m.genre) ? m.genre.join(", ") : m.genre || ""}
+          </td>
           <td>{m.language}</td>
           <td>{m.rating}</td>
           <td className="text-right space-x-3">
             <button
-              className="text-yellow-500 hover:text-yellow-400"
+              className="text-blue-400 hover:text-blue-300 transition-colors"
               onClick={() => {
                 setEditingItem(m);
                 setShowModal(true);
@@ -727,7 +725,7 @@ const TheatersTable = ({
           <td>{t.total_screens}</td>
           <td className="text-right space-x-3">
             <button
-              className="text-yellow-500 hover:text-yellow-400"
+              className="text-blue-400 hover:text-blue-300 transition-colors"
               onClick={() => {
                 setEditingItem(t);
                 setShowModal(true);
@@ -771,7 +769,7 @@ const ShowsTable = ({ shows, setEditingItem, setShowModal, handleDelete }) => (
           <td>₹{s.price}</td>
           <td className="text-right space-x-3">
             <button
-              className="text-yellow-500 hover:text-yellow-400"
+              className="text-blue-400 hover:text-blue-300 transition-colors"
               onClick={() => {
                 setEditingItem(s);
                 setShowModal(true);

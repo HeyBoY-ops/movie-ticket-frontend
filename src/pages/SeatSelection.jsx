@@ -47,6 +47,13 @@ const SeatSelection = () => {
   };
 
   const handleBooking = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please login to book tickets");
+      navigate("/login");
+      return;
+    }
+
     if (selectedSeats.length === 0) {
       toast.error("Please select at least one seat");
       return;

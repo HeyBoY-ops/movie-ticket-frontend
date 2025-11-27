@@ -1,151 +1,109 @@
 import React, { useState, useContext } from "react";
-import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { Mail, Lock, User as UserIcon, AlertCircle } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { toast } from "sonner";
+import { Lock, Mail, User, Film } from "lucide-react";
 
 const Signup = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const { signup } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  // Handle input change
-  const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setError("");
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-
     try {
-      const success = await signup(form.name, form.email, form.password);
-
-      if (!success) return;
-
-      const savedUser = JSON.parse(localStorage.getItem("user"));
-
-      if (savedUser?.role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/");
-      }
+      await signup(name, email, password);
+      toast.success("Account created successfully");
+      navigate("/");
     } catch (err) {
-      setError(err.message || "Signup failed");
-    } finally {
-      setLoading(false);
+      toast.error("Signup failed. Try again.");
     }
   };
 
   return (
-    <div
-      className="min-h-screen pt-20 flex items-center justify-center px-4 bg-[#0a0a1a] text-white"
-      data-testid="signup-page"
-    >
-      <div className="max-w-md w-full">
-        <div className="glass p-8 rounded-3xl shadow-xl border border-yellow-500/10">
-          {/* Heading */}
-          <h1
-            className="text-4xl font-bold text-center mb-2 text-yellow-500"
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-zinc-900/70 border border-zinc-800 p-8 rounded-3xl shadow-2xl backdrop-blur-xl">
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <Film className="w-12 h-12 text-red-600" />
+          </div>
+          <h2
+            className="text-3xl font-bold text-white mb-2"
             style={{ fontFamily: "Cormorant Garamond, serif" }}
           >
-            Join MovieDay
-          </h1>
-          <p className="text-center text-gray-400 mb-8">
-            Create your account to start booking
-          </p>
-
-          {/* Error */}
-          {error && (
-            <div className="mb-6 flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Full Name */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Full Name
-              </label>
-              <div className="relative">
-                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  required
-                  className="pl-12 w-full p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 focus:ring-2 focus:ring-yellow-500 outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  required
-                  className="pl-12 w-full p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 focus:ring-2 focus:ring-yellow-500 outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder="Create a password"
-                  required
-                  minLength={6}
-                  className="pl-12 w-full p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 focus:ring-2 focus:ring-yellow-500 outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-yellow-500 text-black font-semibold hover:bg-yellow-600 transition disabled:opacity-50"
-              data-testid="signup-submit-btn"
-            >
-              {loading ? "Creating Account..." : "Create Account"}
-            </button>
-          </form>
-
-          {/* Switch to login */}
-          <p className="text-center mt-6 text-gray-400">
-            Already have an account?{" "}
-            <Link
-              to="/login"
-              className="text-yellow-500 hover:text-yellow-400 font-medium"
-              data-testid="signup-login-link"
-            >
-              Login
-            </Link>
-          </p>
+            Create Account
+          </h2>
+          <p className="text-gray-400">Join us to book your favorite movies</p>
         </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Full Name
+            </label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input
+                type="text"
+                required
+                className="w-full pl-10 pr-4 py-3 bg-black border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Email Address
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input
+                type="email"
+                required
+                className="w-full pl-10 pr-4 py-3 bg-black border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input
+                type="password"
+                required
+                className="w-full pl-10 pr-4 py-3 bg-black border border-zinc-700 rounded-xl text-white focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg shadow-red-600/20"
+          >
+            Sign Up
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-gray-400">
+          Already have an account?{" "}
+          <Link to="/login" className="text-red-500 font-semibold hover:underline">
+            Sign In
+          </Link>
+        </p>
       </div>
     </div>
   );
