@@ -69,7 +69,8 @@ const Movies = () => {
   const filteredMovies = useMemo(() => {
     const normalizeGenres = (value) => {
       if (!value) return [];
-      if (Array.isArray(value)) return value.map((g) => g?.toLowerCase()).filter(Boolean);
+      if (Array.isArray(value))
+        return value.map((g) => g?.toLowerCase()).filter(Boolean);
       if (typeof value === "string") {
         return value
           .split(",")
@@ -87,7 +88,9 @@ const Movies = () => {
 
     if (filters.genre) {
       const target = filters.genre.toLowerCase();
-      list = list.filter((movie) => normalizeGenres(movie.genre).includes(target));
+      list = list.filter((movie) =>
+        normalizeGenres(movie.genre).includes(target)
+      );
     }
 
     if (filters.language) {
@@ -132,7 +135,8 @@ const Movies = () => {
             Browse Movies
           </h1>
           <p className="text-gray-400 text-base">
-            Dive into the catalogue and fine-tune by genre, language, and release.
+            Dive into the catalogue and fine-tune by genre, language, and
+            release.
           </p>
         </div>
 
@@ -182,16 +186,17 @@ const Movies = () => {
                   className="py-3 px-4 rounded-xl bg-black/60 border border-white/10 text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 transition"
                 >
                   <option value="">{config.placeholder}</option>
-                  {(config.custom ? config.options : config.options.map((opt) => ({ label: opt, value: opt }))).map(
-                    (option) => (
-                      <option
-                        key={typeof option === "string" ? option : option.value}
-                        value={typeof option === "string" ? option : option.value}
-                      >
-                        {typeof option === "string" ? option : option.label}
-                      </option>
-                    )
-                  )}
+                  {(config.custom
+                    ? config.options
+                    : config.options.map((opt) => ({ label: opt, value: opt }))
+                  ).map((option) => (
+                    <option
+                      key={typeof option === "string" ? option : option.value}
+                      value={typeof option === "string" ? option : option.value}
+                    >
+                      {typeof option === "string" ? option : option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             ))}
@@ -229,7 +234,10 @@ const Movies = () => {
                   <div className="relative rounded-2xl overflow-hidden group shadow-[0_0_25px_rgba(229,9,20,0.15)] hover:shadow-[0_0_35px_rgba(229,9,20,0.35)] transition">
                     {/* POSTER */}
                     <img
-                      src={movie.poster_url || "https://via.placeholder.com/300x450"}
+                      src={
+                        movie.poster_url ||
+                        "https://via.placeholder.com/300x450"
+                      }
                       alt={movie.title}
                       className="w-full h-[430px] object-cover rounded-2xl"
                     />
@@ -246,7 +254,9 @@ const Movies = () => {
                           <Star className="w-4 h-4 fill-red-500" />
                           {movie.rating || "N/A"}
                         </span>
-                        <span className="text-gray-200">{movie.language || "Unknown"}</span>
+                        <span className="text-gray-200">
+                          {movie.language || "Unknown"}
+                        </span>
                         <span className="text-gray-200">
                           {movie.duration ? `${movie.duration} min` : ""}
                         </span>
@@ -254,7 +264,10 @@ const Movies = () => {
 
                       {/* Genres */}
                       <div className="flex flex-wrap gap-2">
-                        {(Array.isArray(movie.genre) ? movie.genre : [movie.genre])
+                        {(Array.isArray(movie.genre)
+                          ? movie.genre
+                          : [movie.genre]
+                        )
                           .filter(Boolean)
                           .slice(0, 3)
                           .map((g) => (
