@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import axios from "axios";
-import { API } from "../api";
+import axios from "../api";
 import { CheckCircle, Calendar, Clock, MapPin, Ticket } from "lucide-react";
 
 const BookingConfirmation = () => {
@@ -15,15 +14,61 @@ const BookingConfirmation = () => {
 
   const fetchBookingDetails = async () => {
     try {
-      const res = await axios.get(`/bookings/${bookingId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      // Check if it's a mock booking ID
+      if (bookingId && bookingId.startsWith("mock-booking-")) {
+        // Create mock booking data for demo events
+        const mockBooking = {
+          id: bookingId,
+          booking_status: "confirmed",
+          total_amount: 1500,
+          payment_method: "mock",
+          seats: ["GA-01", "GA-02"],
+          movie: {
+            title: "Event Booking",
+          },
+          theater: {
+            name: "Event Venue",
+            address: "Event Address",
+            city: "Event City",
+          },
+          show: {
+            show_date: new Date().toLocaleDateString(),
+            show_time: "TBD",
+          },
+        };
+        setBooking(mockBooking);
+        setLoading(false);
+        return;
+      }
+
+      const res = await axios.get(`/bookings/${bookingId}`);
 
       setBooking(res.data);
     } catch (err) {
       console.error(err);
+      // If it's a 404 and looks like a mock booking, create mock data
+      if (err.response?.status === 404 && bookingId?.startsWith("mock-")) {
+        const mockBooking = {
+          id: bookingId,
+          booking_status: "confirmed",
+          total_amount: 1500,
+          payment_method: "mock",
+          seats: ["GA-01"],
+          movie: {
+            title: "Event Booking",
+          },
+          theater: {
+            name: "Event Venue",
+            address: "Event Address",
+            city: "Event City",
+          },
+          show: {
+            show_date: new Date().toLocaleDateString(),
+            show_time: "TBD",
+          },
+        };
+        setBooking(mockBooking);
+      }
     } finally {
       setLoading(false);
     }
@@ -71,7 +116,7 @@ const BookingConfirmation = () => {
               className="text-3xl font-bold text-yellow-500"
               style={{ fontFamily: "Cormorant Garamond, serif" }}
             >
-              {booking.movie?.title}
+              {booking.movie?.title || booking.show?.movie?.title || "Event / Movie"}
             </h2>
 
             <span className="px-4 py-1 rounded-full bg-green-500/20 text-green-400 text-sm font-semibold">
@@ -79,14 +124,22 @@ const BookingConfirmation = () => {
             </span>
           </div>
 
-          {/* THEATER */}
-          <div className="flex gap-3 mb-6">
-            <MapPin className="w-5 h-5 text-yellow-500 mt-1" />
-            <div>
-              <p className="font-semibold">{booking.theater?.name}</p>
-              <p className="text-gray-400 text-sm">
-                {booking.theater?.address}, {booking.theater?.city}
-              </p>
+          {/* LOCATION / VENUE */}
+          <div className="bg-white/5 p-4 rounded-xl mb-6">
+            <div className="flex gap-3">
+              <MapPin className="w-5 h-5 text-yellow-500 mt-1 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-gray-400 text-sm mb-1">Location</p>
+                <p className="font-semibold text-lg mb-1">
+                  {booking.theater?.name || booking.show?.theater?.name || "Venue TBD"}
+                </p>
+                <p className="text-gray-400 text-sm">
+                  {booking.theater?.address || booking.show?.theater?.address || ""}
+                  {booking.theater?.city || booking.show?.theater?.city
+                    ? `, ${booking.theater?.city || booking.show?.theater?.city}`
+                    : ""}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -96,7 +149,15 @@ const BookingConfirmation = () => {
               <Calendar className="w-5 h-5 text-yellow-500" />
               <div>
                 <p className="text-gray-400 text-sm">Date</p>
-                <p className="font-semibold">{booking.show?.show_date}</p>
+                <p className="font-semibold">
+                  {booking.show?.show_date
+                    ? new Date(booking.show.show_date).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : "TBD"}
+                </p>
               </div>
             </div>
 

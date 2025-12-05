@@ -15,7 +15,7 @@ const Movies = () => {
     sort_by: "release_date",
     page: 1,
   });
-  const pageSize = 12;
+  const pageSize = 10;
 
   const genres = [
     "Action",
@@ -30,15 +30,27 @@ const Movies = () => {
 
   // Sync global search to local filters
   useEffect(() => {
-    setFilters((prev) => ({ ...prev, search: search, page: 1 }));
+    if (search !== filters.search) {
+      setFilters((prev) => ({ ...prev, search: search, page: 1 }));
+    }
   }, [search]);
 
   useEffect(() => {
     const fetchMovies = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`/movies?limit=200`);
+        const queryParams = new URLSearchParams({
+          page: filters.page,
+          limit: pageSize,
+          search: filters.search,
+          genre: filters.genre,
+          language: filters.language,
+          sort_by: filters.sort_by,
+        }).toString();
+
+        const response = await axios.get(`/movies?${queryParams}`);
         setMovies(response.data?.movies || []);
+        setTotalPages(response.data?.totalPages || 1);
       } catch (error) {
         console.error("Error fetching movies:", error);
       } finally {
@@ -46,79 +58,36 @@ const Movies = () => {
       }
     };
 
-    fetchMovies();
-  }, []);
+    // Debounce search to avoid too many requests
+    const timeoutId = setTimeout(() => {
+      fetchMovies();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [filters]);
+
+  const [totalPages, setTotalPages] = useState(1);
 
   const handleFilterChange = (key, value) => {
-    setFilters({
-      ...filters,
+    setFilters((prev) => ({
+      ...prev,
       [key]: value,
       page: 1,
-    });
+    }));
   };
 
   const handlePageChange = (newPage) => {
-    const safePage = Math.min(Math.max(newPage, 1), totalPages);
-    setFilters({
-      ...filters,
-      page: safePage,
-    });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (newPage >= 1 && newPage <= totalPages) {
+      setFilters((prev) => ({
+        ...prev,
+        page: newPage
+      }));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
-  const filteredMovies = useMemo(() => {
-    const normalizeGenres = (value) => {
-      if (!value) return [];
-      if (Array.isArray(value))
-        return value.map((g) => g?.toLowerCase()).filter(Boolean);
-      if (typeof value === "string") {
-        return value
-          .split(",")
-          .map((g) => g.trim().toLowerCase())
-          .filter(Boolean);
-      }
-      return [];
-    };
-
-    let list = [...movies];
-    if (filters.search?.trim()?.length) {
-      const term = filters.search.toLowerCase();
-      list = list.filter((movie) => movie.title?.toLowerCase().includes(term));
-    }
-
-    if (filters.genre) {
-      const target = filters.genre.toLowerCase();
-      list = list.filter((movie) =>
-        normalizeGenres(movie.genre).includes(target)
-      );
-    }
-
-    if (filters.language) {
-      const lang = filters.language.toLowerCase();
-      list = list.filter((movie) => movie.language?.toLowerCase() === lang);
-    }
-
-    list.sort((a, b) => {
-      if (filters.sort_by === "rating") {
-        return (b.rating || 0) - (a.rating || 0);
-      }
-      if (filters.sort_by === "title") {
-        return (a.title || "").localeCompare(b.title || "");
-      }
-      const dateA = new Date(a.release_date || a.created_at || 0);
-      const dateB = new Date(b.release_date || b.created_at || 0);
-      return dateB - dateA;
-    });
-
-    return list;
-  }, [movies, filters]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredMovies.length / pageSize));
-  const currentPage = Math.min(filters.page, totalPages);
-  const paginatedMovies = filteredMovies.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  // filteredMovies logic is removed as filtering happens on backend
+  const paginatedMovies = movies; // Movies from API are already paginated
 
   return (
     <div
@@ -289,20 +258,20 @@ const Movies = () => {
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-6">
                 <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(filters.page - 1)}
+                  disabled={filters.page === 1}
                   className="px-4 py-2 rounded-xl bg-black/60 border border-white/10 disabled:opacity-40 hover:border-red-500 transition"
                 >
                   <ChevronLeft className="w-5 h-5 text-white" />
                 </button>
 
                 <span className="text-gray-300 text-lg">
-                  Page {currentPage} / {totalPages}
+                  Page {filters.page} / {totalPages}
                 </span>
 
                 <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(filters.page + 1)}
+                  disabled={filters.page === totalPages}
                   className="px-4 py-2 rounded-xl bg-black/60 border border-white/10 disabled:opacity-40 hover:border-red-500 transition"
                 >
                   <ChevronRight className="w-5 h-5 text-white" />

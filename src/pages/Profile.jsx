@@ -31,24 +31,71 @@ const Profile = () => {
 
     try {
       await axios.post(`/bookings/${id}/cancel`);
-      toast.success("Booking cancelled");
-      fetchBookings();
+      toast.success("Booking cancelled successfully");
+      fetchBookings(); // Refresh the bookings list
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to cancel booking");
+      console.error("Cancel booking error:", err);
+      const errorMessage =
+        err.response?.data?.error ||
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        "Failed to cancel booking";
+      toast.error(errorMessage);
     }
   };
 
-  const upcoming = bookings.filter(
-    (b) =>
-      b.booking_status === "confirmed" &&
-      new Date(b.show?.show_date) >= new Date()
-  );
+  // Helper function to normalize date for comparison (compare only date, not time)
+  const normalizeDate = (dateString) => {
+    if (!dateString) return null;
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) return null;
+      // Set to midnight UTC for consistent comparison
+      date.setUTCHours(0, 0, 0, 0);
+      return date;
+    } catch (error) {
+      console.error("Error parsing date:", dateString, error);
+      return null;
+    }
+  };
 
-  const past = bookings.filter(
-    (b) =>
-      b.booking_status === "cancelled" ||
-      new Date(b.show?.show_date) < new Date()
-  );
+  // Get today's date at midnight UTC for consistent comparison
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  // Filter bookings: upcoming = confirmed AND show_date >= today
+  const upcoming = bookings.filter((b) => {
+    // Only show confirmed bookings
+    if (b.booking_status !== "confirmed") return false;
+
+    const showDate = normalizeDate(b.show?.show_date);
+    if (!showDate) {
+      // If no date, don't include in upcoming
+      return false;
+    }
+
+    // Show date must be today or in the future
+    return showDate.getTime() >= today.getTime();
+  });
+
+  // Filter bookings: past = cancelled OR show_date < today
+  const past = bookings.filter((b) => {
+    // Always show cancelled bookings in history
+    if (b.booking_status === "cancelled") return true;
+
+    // Only include confirmed bookings with past dates
+    if (b.booking_status !== "confirmed") return false;
+
+    const showDate = normalizeDate(b.show?.show_date);
+    if (!showDate) {
+      // If no date, don't include in past
+      return false;
+    }
+
+    // Show date must be before today
+    return showDate.getTime() < today.getTime();
+  });
 
   return (
     <div className="min-h-screen bg-black text-white pt-24 pb-10 px-4 transition-colors duration-500">
@@ -124,7 +171,11 @@ const Profile = () => {
                       <Calendar className="w-4 h-4 text-red-500" />
                       <span className="text-sm">
                         {b.show?.show_date
-                          ? new Date(b.show.show_date).toLocaleDateString()
+                          ? new Date(b.show.show_date).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
                           : "N/A"}
                       </span>
                     </div>
@@ -197,11 +248,10 @@ const Profile = () => {
                       {b.show?.movie?.title || "Event / Movie"}
                     </h3>
                     <span
-                      className={`text-xs px-3 py-1 rounded-full border ${
-                        b.booking_status === "cancelled"
-                          ? "bg-red-500/10 border-red-500 text-red-500"
-                          : "bg-green-500/10 border-green-500 text-green-500"
-                      }`}
+                      className={`text-xs px-3 py-1 rounded-full border ${b.booking_status === "cancelled"
+                        ? "bg-red-500/10 border-red-500 text-red-500"
+                        : "bg-green-500/10 border-green-500 text-green-500"
+                        }`}
                     >
                       {b.booking_status}
                     </span>
@@ -220,7 +270,13 @@ const Profile = () => {
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-red-500" />
                       <span className="text-sm text-gray-300">
-                         {b.show?.show_date ? new Date(b.show.show_date).toLocaleDateString() : "N/A"}
+                        {b.show?.show_date
+                          ? new Date(b.show.show_date).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                          : "N/A"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
