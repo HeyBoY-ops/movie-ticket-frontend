@@ -46,6 +46,7 @@ const Movies = () => {
           genre: filters.genre,
           language: filters.language,
           sort_by: filters.sort_by,
+          category: "MOVIE",
         }).toString();
 
         const response = await axios.get(`/movies?${queryParams}`);

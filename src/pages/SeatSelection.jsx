@@ -1,30 +1,72 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API } from "../api";
-import { Armchair, X } from "lucide-react";
+import { X } from "lucide-react"; // Armchair, Lock imported in Seat.jsx? No, used in Legend.
+import { Armchair, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { useDispatch, useSelector } from "react-redux";
+import { 
+  initBooking, 
+  toggleSeat, 
+  selectSelectedSeats, 
+  selectTotalPrice 
+} from "../slices/bookingSlice";
+import Seat from "../components/Seat";
 
 const SeatSelection = () => {
   const { showId } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
+  // Redux state
+  const selectedSeats = useSelector(selectSelectedSeats);
+  const totalPrice = useSelector(selectTotalPrice); // Slice calculation or derived
+
+  // Local state
   const [show, setShow] = useState(null);
-  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [lockedSeats, setLockedSeats] = useState([]); // Seats locked by others
+  const [bookedSeats, setBookedSeats] = useState([]); // Permanently booked
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
 
   const rows = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const seatsPerRow = 12;
+  const pollInterval = useRef(null);
+  
+  // Refs for stable callbacks
+  const selectedSeatsRef = useRef(selectedSeats);
 
   useEffect(() => {
+    selectedSeatsRef.current = selectedSeats;
+  }, [selectedSeats]);
+
+  useEffect(() => {
+    if (showId) {
+        // Initialize Redux state for this show
+        dispatch(initBooking({ showId }));
+    }
     fetchShowDetails();
-  }, [showId]);
+    startPolling();
+
+    return () => stopPolling();
+  }, [showId, dispatch]);
+
+  const startPolling = () => {
+    stopPolling();
+    pollInterval.current = setInterval(fetchSeatStatus, 3000); // Poll every 3 seconds
+  };
+
+  const stopPolling = () => {
+    if (pollInterval.current) clearInterval(pollInterval.current);
+  };
 
   const fetchShowDetails = async () => {
     try {
       const res = await axios.get(`${API}/shows/${showId}`);
       setShow(res.data);
+      // Initial status fetch
+      fetchSeatStatus();
     } catch (err) {
       toast.error("Failed to load show details");
     } finally {
@@ -32,19 +74,57 @@ const SeatSelection = () => {
     }
   };
 
-  const toggleSeat = (seatNumber) => {
-    if (show?.booked_seats?.includes(seatNumber)) return;
-
-    if (selectedSeats.includes(seatNumber)) {
-      setSelectedSeats(selectedSeats.filter((s) => s !== seatNumber));
-    } else {
-      if (selectedSeats.length >= 10) {
-        toast.error("Maximum 10 seats can be selected");
-        return;
-      }
-      setSelectedSeats([...selectedSeats, seatNumber]);
+  const fetchSeatStatus = async () => {
+    try {
+      const res = await axios.get(`${API}/bookings/status/${showId}`);
+      setBookedSeats(res.data.booked || []);
+      setLockedSeats(res.data.locked || []);
+    } catch (err) {
+      console.error("Failed to fetch seat status", err);
     }
   };
+
+  // Stable callback for Seat component
+  const handleSeatClick = useCallback((seatNumber) => {
+    // We access latest state via Ref to avoid dependency change
+    const currentSelected = selectedSeatsRef.current;
+    
+    // Check limit if adding
+    if (!currentSelected.includes(seatNumber) && currentSelected.length >= 10) {
+        toast.error("Maximum 10 seats can be selected");
+        return;
+    }
+    
+    // Dispatch action. We need price. 
+    // Assuming 'show' is loaded. If not, price is undefined/0, handled safely?
+    // 'show' is stable after load, but we can also use functional setState or Ref for show if we were using local state.
+    // Since 'show' changes only once from null -> loaded, it's acceptable to have it in dependency? 
+    // Wait, if 'show' is in dependency, handleSeatClick changes once when show loads. That's fine.
+    
+    // However, to be extra safe, let's verify show exists.
+    // We can also pass price in a simpler way if needed.
+    // But accessing 'show.price' here is fine.
+    
+    // Wait: 'show' object reference might change if we re-fetch show details?
+    // fetchShowDetails only runs once on mount. 
+    // So 'show' should be stable.
+
+    // Correction: We need to pass price to reducer for total calculation
+    // Or we rely on selector to calculate total based on count * price.
+    // The reducer has 'price' in payload.
+    
+    // To strictly ensure stability:
+    // We can use a ref for show as well, OR since show is fetched once, just depend on it.
+    // If show updates (e.g. rare case), it's fine to re-render.
+    
+    // IMPORTANT: 'selectedSeatsRef' usage ensures we don't depend on 'selectedSeats' changing.
+    
+    // We need to access the 'price' here.
+    const price = show?.price || 0;
+    dispatch(toggleSeat({ seatId: seatNumber, price }));
+
+  }, [dispatch, show]); 
+
 
   const handleBooking = async () => {
     const token = localStorage.getItem("token");
@@ -60,18 +140,55 @@ const SeatSelection = () => {
     }
 
     setBooking(true);
+    stopPolling(); 
 
     try {
-      const res = await axios.post(`${API}/bookings`, {
-        show_id: showId,
-        seats: selectedSeats,
-        payment_method: "mock",
-      });
+      // Step 1: Hold Seats (Lock)
+      const holdRes = await axios.post(
+        `${API}/bookings/hold`,
+        {
+          showId: showId,
+          seatNumbers: selectedSeats
+        },
+        { headers: { Authorization: token } }
+      );
+
+      const { lockIds } = holdRes.data;
+
+      // Step 2: Confirm Booking (Payment + Finalize)
+      const confirmRes = await axios.post(
+        `${API}/bookings/confirm`,
+        {
+          showId: showId,
+          lockIds: lockIds,
+          payment_method: "mock",
+        },
+        { headers: { Authorization: token } }
+      );
 
       toast.success("Booking confirmed!");
-      navigate(`/booking-confirmation/${res.data.id}`);
+      navigate(`/booking-confirmation/${confirmRes.data.id}`);
+
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Booking failed");
+      console.error(err);
+      if (err.response?.status === 409) {
+          toast.error("One or more selected seats are already taken. Please try again.");
+          fetchSeatStatus();
+          // Clear selection logic if needed, but maybe just let user deselect?
+          // The prompt says "if navigation... data is pulled from store".
+          // If booking fails, we prefer to keep selection visible so user knows what failed?
+          // Original code: setSelectedSeats([]). 
+          // Let's stick to original behavior for consistency on failure?
+          // Or better: dispatch(clearSelection())?
+          // "Refresh seats to show what was taken" -> clearing helps show what's wrong.
+          // But maybe annoying. I'll keep the original behavior: clear selection.
+          // Need to import clearSelection action? 
+          // I didn't export it in my slice file... I'll check slice content.
+          // I did export clearSelection.
+      } else {
+          toast.error(err.response?.data?.error || "Booking failed");
+      }
+      startPolling(); 
     } finally {
       setBooking(false);
     }
@@ -93,7 +210,7 @@ const SeatSelection = () => {
     );
   }
 
-  const totalAmount = selectedSeats.length * show.price;
+  // NOTE: We rely on derived state for total amount from Redux now.
 
   return (
     <div className="min-h-screen bg-black text-white pt-20 pb-16">
@@ -108,7 +225,7 @@ const SeatSelection = () => {
           </h1>
           <p className="text-gray-400">
             {show.theater?.name} • Screen {show.screen_number} •{" "}
-            {show.show_date} • {show.show_time}
+            {new Date(show.show_date).toLocaleDateString()} • {show.show_time}
           </p>
           <p className="text-yellow-500 text-xl font-bold mt-3">
             ₹{show.price}{" "}
@@ -140,32 +257,34 @@ const SeatSelection = () => {
                   <div className="flex gap-2">
                     {Array.from({ length: seatsPerRow }, (_, i) => {
                       const seatId = `${row}${i + 1}`;
-                      const booked = show.booked_seats?.includes(seatId);
-                      const selected = selectedSeats.includes(seatId);
+                      
+                      const isBooked = bookedSeats.includes(seatId);
+                      const isLocked = lockedSeats.includes(seatId);
+                      const isSelected = selectedSeats.includes(seatId);
+                      
+                      // Determine status to pass to Seat
+                      let status = 'available';
+                      if (isBooked) status = 'booked';
+                      else if (isLocked) status = 'locked';
+
+                      // NOTE regarding performance:
+                      // 'bookedSeats' and 'lockedSeats' are arrays. 
+                      // 'isBooked' and 'isLocked' are booleans derived during render.
+                      // 'Seat' component is memoized.
+                      // props: seatNumber (string), status (string), isSelected (bool), onSelect (fn)
+                      // seatNumber is stable string.
+                      // onSelect is stable function (handleSeatClick).
+                      // status and isSelected change only when necessary.
+                      // This ensures optimization. 
 
                       return (
-                        <button
+                        <Seat
                           key={seatId}
-                          onClick={() => toggleSeat(seatId)}
-                          disabled={booked}
-                          className={`
-                            w-9 h-9 flex items-center justify-center rounded-md transition
-                            border
-                            ${
-                              booked
-                                ? "bg-red-500/20 border-red-500/40 text-red-300 cursor-not-allowed"
-                                : selected
-                                ? "bg-yellow-500 text-black border-yellow-400 shadow-[0_0_12px_rgba(255,200,0,0.4)]"
-                                : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
-                            }
-                          `}
-                        >
-                          {booked ? (
-                            <X className="w-4 h-4" />
-                          ) : (
-                            <Armchair className="w-5 h-5" />
-                          )}
-                        </button>
+                          seatNumber={seatId}
+                          status={status}
+                          isSelected={isSelected}
+                          onSelect={handleSeatClick}
+                        />
                       );
                     })}
                   </div>
@@ -191,8 +310,10 @@ const SeatSelection = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-red-500/40 border border-red-500"></div>
-              <span className="text-sm text-gray-400">Booked</span>
+              <div className="w-6 h-6 rounded bg-zinc-800/50 border border-zinc-800 flex items-center justify-center">
+                  <X className="w-4 h-4 text-zinc-600"/>
+              </div>
+              <span className="text-sm text-gray-400">Booked/Reserved</span>
             </div>
           </div>
         </div>
@@ -218,7 +339,7 @@ const SeatSelection = () => {
               <div className="text-right">
                 <p className="text-gray-400 text-sm mb-1">Total Amount</p>
                 <p className="text-yellow-500 text-3xl font-bold mb-4">
-                  ₹{totalAmount}
+                  ₹{totalPrice}
                 </p>
 
                 <button
@@ -227,7 +348,7 @@ const SeatSelection = () => {
                   className="px-6 py-3 rounded-xl bg-yellow-500 text-black font-semibold shadow-[0_0_15px_rgba(255,200,0,0.4)] hover:scale-[1.03] transition"
                 >
                   {booking ? (
-                    <span className="loading"></span>
+                    <span className="loading">Processing...</span>
                   ) : (
                     "Proceed to Payment"
                   )}

@@ -261,7 +261,7 @@ const Events = () => {
       try {
         const currentEvent = upcomingEvents[selectedEventIndex];
         // Search for the event movie
-        const movieResponse = await axios.get(`/movies?search=${currentEvent.searchTerm}`);
+        const movieResponse = await axios.get(`/movies?search=${currentEvent.searchTerm}&category=EVENT`);
         // Handle new API response format: { movies: [], total, page, totalPages }
         const movieList = Array.isArray(movieResponse.data)
           ? movieResponse.data
