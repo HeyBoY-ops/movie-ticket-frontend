@@ -115,7 +115,7 @@ const MovieDetails = () => {
       setShows(res.data || []);
 
       if (res.data?.length > 0) {
-        setSelectedDate(new Date(res.data[0].show_date).toDateString());
+        setSelectedDate(new Date(res.data[0].showDate).toDateString());
       }
     } catch (err) {
       toast.error("Failed to load shows");
@@ -137,11 +137,11 @@ const MovieDetails = () => {
   );
 
   const uniqueDates = [
-    ...new Set(cityShows.map((s) => new Date(s.show_date).toDateString())),
+    ...new Set(cityShows.map((s) => new Date(s.showDate).toDateString())),
   ].sort((a, b) => new Date(a) - new Date(b));
 
   const filteredShows = cityShows.filter(
-    (s) => new Date(s.show_date).toDateString() === selectedDate
+    (s) => new Date(s.showDate).toDateString() === selectedDate
   );
 
   const showsByTheater = filteredShows.reduce((acc, show) => {
@@ -171,9 +171,9 @@ const MovieDetails = () => {
 
   useEffect(() => {
     let mounted = true;
-    if (!movie?.poster_url) return;
+    if (!movie?.posterUrl) return;
 
-    extractDominantColor(movie.poster_url).then((color) => {
+    extractDominantColor(movie.posterUrl).then((color) => {
       if (!mounted || !color) {
         setTheme(defaultTheme);
         return;
@@ -199,7 +199,7 @@ const MovieDetails = () => {
     return () => {
       mounted = false;
     };
-  }, [movie?.poster_url, defaultTheme]);
+  }, [movie?.posterUrl, defaultTheme]);
 
   if (loading) {
     return (
@@ -226,7 +226,7 @@ const MovieDetails = () => {
       <div className="relative h-[520px] overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center scale-110 blur-[14px] brightness-[0.3]"
-          style={{ backgroundImage: `url(${movie.poster_url})` }}
+          style={{ backgroundImage: `url(${movie.posterUrl})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
         <div
@@ -239,7 +239,7 @@ const MovieDetails = () => {
           <div className="flex flex-col md:flex-row gap-10 items-end">
             {/* POSTER */}
             <img
-              src={movie.poster_url}
+              src={movie.posterUrl}
               alt={movie.title}
               className="w-64 h-96 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.7)] object-cover"
             />
@@ -293,9 +293,9 @@ const MovieDetails = () => {
               </div>
 
               {/* Trailer */}
-              {movie.trailer_url && (
+              {movie.trailerUrl && (
                 <a
-                  href={movie.trailer_url}
+                  href={movie.trailerUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-6 py-3 inline-flex items-center gap-2 rounded-xl font-semibold hover:scale-[1.03] transition"
@@ -346,8 +346,8 @@ const MovieDetails = () => {
             <div>
               <h3 className="text-sm text-gray-400">Release Date</h3>
               <p className="text-lg">
-                {movie.release_date
-                  ? new Date(movie.release_date).toLocaleDateString()
+                {movie.releaseDate
+                  ? new Date(movie.releaseDate).toLocaleDateString()
                   : "N/A"}
               </p>
             </div>
@@ -426,10 +426,10 @@ const MovieDetails = () => {
                           }}
                         >
                           <div className="text-lg font-semibold">
-                            {formatTimeRange(show.show_time, movie.duration)}
+                            {formatTimeRange(show.showTime, movie.duration)}
                           </div>
                           <div className="text-xs text-gray-400 mt-1">
-                            {show.available_seats} seats • ₹{show.price}
+                            {show.availableSeats || show.totalSeats} seats • ₹{show.price}
                           </div>
                         </button>
                       ))}

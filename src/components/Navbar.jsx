@@ -140,15 +140,26 @@ export default function Navbar({ search, setSearch, location, setLocation }) {
             {user ? (
               <>
                 <Link
-                  to="/profile"
+                  to="/dashboard/my-bookings"
                   className={`text-sm font-medium transition ${
-                    isActive("/profile") ? "text-red-500" : "hover:text-red-500"
+                    isActive("/dashboard/my-bookings") ? "text-red-500" : "hover:text-red-500"
                   }`}
                 >
                   My Bookings
                 </Link>
 
-                {user.role === "admin" && (
+                {user.role === "ORGANIZATION" && (
+                  <Link
+                    to="/dashboard/business-analytics"
+                    className={`text-sm font-medium transition ${
+                      isActive("/dashboard/business-analytics") ? "text-red-500" : "hover:text-red-500"
+                    }`}
+                  >
+                    Dashboard
+                  </Link>
+                )}
+
+                {(user.role === "admin" || user.role === "SUPER_ADMIN") && (
                   <Link
                     to="/admin"
                     className={`text-sm font-medium transition ${
@@ -250,13 +261,22 @@ export default function Navbar({ search, setSearch, location, setLocation }) {
             {user ? (
               <>
                 <Link
-                  to="/profile"
+                  to="/dashboard/my-bookings"
                   className="block px-2 py-1 hover:text-red-500"
                   onClick={() => setMobileMenu(false)}
                 >
                   My Bookings
                 </Link>
-                {user.role === "admin" && (
+                {user.role === "ORGANIZATION" && (
+                  <Link
+                    to="/dashboard/business-analytics"
+                    className="block px-2 py-1 hover:text-red-500"
+                    onClick={() => setMobileMenu(false)}
+                  >
+                    Dashboard
+                  </Link>
+                )}
+                {(user.role === "admin" || user.role === "SUPER_ADMIN") && (
                   <Link
                     to="/admin"
                     className="block px-2 py-1 hover:text-red-500"

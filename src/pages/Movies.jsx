@@ -1,31 +1,24 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
-import axios from "../api"; // Use configured axios
-import { Filter, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import axios from "../api";
+import { Filter, Star, ChevronLeft, ChevronRight, Play, Plus, Info } from "lucide-react";
+import { MovieCardSkeleton } from "../components/MovieCardSkeleton";
 
 const Movies = () => {
-  const { search } = useOutletContext(); // Get global search
-
+  const { search } = useOutletContext();
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: "",
     genre: "",
     language: "",
-    sort_by: "release_date",
+    sort_by: "releaseDate",
     page: 1,
   });
-  const pageSize = 10;
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 12; // Increased slightly for grid
 
-  const genres = [
-    "Action",
-    "Comedy",
-    "Drama",
-    "Horror",
-    "Romance",
-    "Sci-Fi",
-    "Thriller",
-  ];
+  const genres = ["Action", "Comedy", "Drama", "Horror", "Romance", "Sci-Fi", "Thriller"];
   const languages = ["English", "Hindi", "Tamil", "Telugu", "Malayalam"];
 
   // Sync global search to local filters
@@ -59,7 +52,6 @@ const Movies = () => {
       }
     };
 
-    // Debounce search to avoid too many requests
     const timeoutId = setTimeout(() => {
       fetchMovies();
     }, 500);
@@ -67,224 +59,154 @@ const Movies = () => {
     return () => clearTimeout(timeoutId);
   }, [filters]);
 
-  const [totalPages, setTotalPages] = useState(1);
-
   const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-      page: 1,
-    }));
+    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
   };
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
-      setFilters((prev) => ({
-        ...prev,
-        page: newPage
-      }));
+      setFilters((prev) => ({ ...prev, page: newPage }));
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  // filteredMovies logic is removed as filtering happens on backend
-  const paginatedMovies = movies; // Movies from API are already paginated
-
   return (
-    <div
-      className="min-h-screen bg-black text-white pt-24 pb-10 transition-colors duration-500"
-      data-testid="movies-page"
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* PAGE TITLE */}
-        <div className="flex flex-col gap-3 mb-10">
-          <h1
-            className="text-5xl font-bold text-red-500 drop-shadow-[0_0_25px_rgba(229,9,20,0.35)]"
-            style={{ fontFamily: "Cormorant Garamond, serif" }}
-          >
-            Browse Movies
+    <div className="min-h-screen bg-[#050505] text-white font-sans pb-20">
+      
+      {/* 1. Header / Filter Bar */}
+      <div className="sticky top-[64px] z-40 bg-[#050505]/95 backdrop-blur-xl border-b border-white/5 py-6 px-4 md:px-16 shadow-2xl">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-6 items-center justify-between">
+          
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 tracking-tight">
+             Explore Movies
           </h1>
-          <p className="text-gray-400 text-base">
-            Dive into the catalogue and fine-tune by genre, language, and
-            release.
-          </p>
-        </div>
 
-        {/* FILTERS CONTAINER */}
-        <div className="bg-gradient-to-br from-zinc-900/80 via-black/70 to-zinc-900/60 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl mb-14 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
-          <div className="flex items-center gap-3 text-xs uppercase tracking-[0.4em] text-gray-500 mb-6">
-            <Filter className="w-4 h-4 text-red-500" />
-            Refine
-          </div>
+          <div className="flex flex-wrap gap-3 items-center">
+             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-gray-500 mr-2">
+                <Filter className="w-4 h-4 text-red-600" />
+                Refine
+             </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                label: "Genre",
-                value: filters.genre,
-                handler: (value) => handleFilterChange("genre", value),
-                placeholder: "All Genres",
-                options: genres,
-              },
-              {
-                label: "Language",
-                value: filters.language,
-                handler: (value) => handleFilterChange("language", value),
-                placeholder: "All Languages",
-                options: languages,
-              },
-              {
-                label: "Sort By",
-                value: filters.sort_by,
-                handler: (value) => handleFilterChange("sort_by", value),
-                placeholder: "Release Date",
-                options: [
-                  { label: "Release Date", value: "release_date" },
-                  { label: "Rating", value: "rating" },
-                  { label: "Title", value: "title" },
-                ],
-                custom: true,
-              },
-            ].map((config) => (
-              <div key={config.label} className="space-y-2 text-sm">
-                <p className="text-gray-400 uppercase tracking-[0.2em]">
-                  {config.label}
-                </p>
-                <select
-                  value={config.value}
-                  onChange={(e) => config.handler(e.target.value)}
-                  className="py-3 px-4 rounded-xl bg-black/60 border border-white/10 text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 transition"
-                >
-                  <option value="">{config.placeholder}</option>
-                  {(config.custom
-                    ? config.options
-                    : config.options.map((opt) => ({ label: opt, value: opt }))
-                  ).map((option) => (
-                    <option
-                      key={typeof option === "string" ? option : option.value}
-                      value={typeof option === "string" ? option : option.value}
-                    >
-                      {typeof option === "string" ? option : option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
+             {/* Genre Dropdown */}
+             <select
+                value={filters.genre}
+                onChange={(e) => handleFilterChange("genre", e.target.value)}
+                className="bg-white/5 border border-white/10 text-white text-sm rounded-full px-4 py-2 outline-none focus:border-red-600 focus:bg-white/10 transition cursor-pointer appearance-none hover:bg-white/10"
+             >
+                <option value="" className="bg-[#121212]">All Genres</option>
+                {genres.map(g => <option key={g} value={g} className="bg-[#121212]">{g}</option>)}
+             </select>
 
-          <div className="mt-6 flex flex-wrap gap-3 text-xs text-gray-400">
-            {filters.genre && (
-              <span className="px-3 py-1 rounded-full bg-red-600/10 border border-red-500/40 text-red-300">
-                Genre: {filters.genre}
-              </span>
-            )}
-            {filters.language && (
-              <span className="px-3 py-1 rounded-full bg-red-600/10 border border-red-500/40 text-red-300">
-                Language: {filters.language}
-              </span>
-            )}
-            {!filters.genre && !filters.language && (
-              <span className="px-3 py-1 rounded-full border border-white/10 text-gray-500">
-                Showing all movies
-              </span>
-            )}
+             {/* Language Dropdown */}
+             <select
+                value={filters.language}
+                onChange={(e) => handleFilterChange("language", e.target.value)}
+                className="bg-white/5 border border-white/10 text-white text-sm rounded-full px-4 py-2 outline-none focus:border-red-600 focus:bg-white/10 transition cursor-pointer appearance-none hover:bg-white/10"
+             >
+                <option value="" className="bg-[#121212]">All Languages</option>
+                {languages.map(l => <option key={l} value={l} className="bg-[#121212]">{l}</option>)}
+             </select>
+
+             {/* Sort Dropdown */}
+             <select
+                value={filters.sort_by}
+                onChange={(e) => handleFilterChange("sort_by", e.target.value)}
+                className="bg-white/5 border border-white/10 text-white text-sm rounded-full px-4 py-2 outline-none focus:border-red-600 focus:bg-white/10 transition cursor-pointer appearance-none hover:bg-white/10"
+             >
+               <option value="releaseDate" className="bg-[#121212]">Newest First</option>
+               <option value="rating" className="bg-[#121212]">Top Rated</option>
+               <option value="title" className="bg-[#121212]">A-Z</option>
+             </select>
           </div>
         </div>
+      </div>
 
-        {/* MOVIES GRID */}
+      {/* 2. Movies Grid */}
+      <div className="max-w-7xl mx-auto px-4 md:px-16 pt-10">
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="loading"></div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <MovieCardSkeleton key={index} />
+            ))}
           </div>
         ) : movies.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 mb-14">
-              {paginatedMovies.map((movie) => (
-                <Link to={`/movies/${movie.id}`} key={movie.id}>
-                  <div className="relative rounded-2xl overflow-hidden group shadow-[0_0_25px_rgba(229,9,20,0.15)] hover:shadow-[0_0_35px_rgba(229,9,20,0.35)] transition">
-                    {/* POSTER */}
-                    <img
-                      src={
-                        movie.poster_url ||
-                        "https://via.placeholder.com/300x450"
-                      }
-                      alt={movie.title}
-                      className="w-full h-[430px] object-cover rounded-2xl"
-                    />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+              {movies.map((movie) => (
+                <Link 
+                  to={`/movies/${movie.id}`} 
+                  key={movie.id}
+                  className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-gray-900 border border-white/5 shadow-lg hover:shadow-2xl hover:shadow-red-900/10 transition-all duration-500 hover:scale-[1.02] hover:z-10"
+                >
+                  <img
+                    src={movie.posterUrl || "https://placehold.co/300x450?text=No+Poster"}
+                    alt={movie.title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-5 flex flex-col justify-end">
+                      <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                          <h3 className="font-bold text-white text-lg leading-tight mb-1">{movie.title}</h3>
+                          
+                          <div className="flex items-center gap-3 text-xs text-gray-300 mb-3 font-medium">
+                              <span className="text-green-400">{movie.rating ? `${Math.round(movie.rating * 10)}% Match` : "New"}</span>
+                              <span>{movie.duration} min</span>
+                              <span className="border border-white/20 px-1 rounded text-[10px]">HD</span>
+                          </div>
 
-                    {/* OVERLAY */}
-                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all flex flex-col justify-end p-5">
-                      <h3 className="text-2xl font-bold mb-2 text-white">
-                        {movie.title}
-                      </h3>
-
-                      {/* Rating + Language + Duration */}
-                      <div className="flex items-center gap-4 text-sm mb-2">
-                        <span className="flex items-center gap-1 text-red-400">
-                          <Star className="w-4 h-4 fill-red-500" />
-                          {movie.rating || "N/A"}
-                        </span>
-                        <span className="text-gray-200">
-                          {movie.language || "Unknown"}
-                        </span>
-                        <span className="text-gray-200">
-                          {movie.duration ? `${movie.duration} min` : ""}
-                        </span>
+                          <div className="flex gap-2">
+                             <button className="flex-1 bg-white text-black py-2 rounded font-bold text-xs hover:bg-gray-200 transition flex items-center justify-center gap-1">
+                                <Play className="w-3 h-3 fill-black" /> Play
+                             </button>
+                             <button className="p-2 border border-gray-400 rounded-full hover:border-white hover:bg-white/10 transition">
+                                <Plus className="w-4 h-4 text-white" />
+                             </button>
+                          </div>
                       </div>
-
-                      {/* Genres */}
-                      <div className="flex flex-wrap gap-2">
-                        {(Array.isArray(movie.genre)
-                          ? movie.genre
-                          : [movie.genre]
-                        )
-                          .filter(Boolean)
-                          .slice(0, 3)
-                          .map((g) => (
-                            <span
-                              key={g}
-                              className="px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-xs"
-                            >
-                              {g}
-                            </span>
-                          ))}
-                      </div>
-                    </div>
                   </div>
                 </Link>
               ))}
             </div>
 
-            {/* PAGINATION */}
+            {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-6">
-                <button
-                  onClick={() => handlePageChange(filters.page - 1)}
-                  disabled={filters.page === 1}
-                  className="px-4 py-2 rounded-xl bg-black/60 border border-white/10 disabled:opacity-40 hover:border-red-500 transition"
-                >
-                  <ChevronLeft className="w-5 h-5 text-white" />
-                </button>
+               <div className="mt-16 flex justify-center items-center gap-4">
+                 <button
+                   onClick={() => handlePageChange(filters.page - 1)}
+                   disabled={filters.page === 1}
+                   className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                 >
+                   <ChevronLeft className="w-5 h-5" />
+                 </button>
+                 
+                 <div className="text-sm font-medium text-gray-400">
+                    Page <span className="text-white mx-1">{filters.page}</span> of {totalPages}
+                 </div>
 
-                <span className="text-gray-300 text-lg">
-                  Page {filters.page} / {totalPages}
-                </span>
-
-                <button
-                  onClick={() => handlePageChange(filters.page + 1)}
-                  disabled={filters.page === totalPages}
-                  className="px-4 py-2 rounded-xl bg-black/60 border border-white/10 disabled:opacity-40 hover:border-red-500 transition"
-                >
-                  <ChevronRight className="w-5 h-5 text-white" />
-                </button>
-              </div>
+                 <button
+                   onClick={() => handlePageChange(filters.page + 1)}
+                   disabled={filters.page === totalPages}
+                   className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                 >
+                   <ChevronRight className="w-5 h-5" />
+                 </button>
+               </div>
             )}
           </>
         ) : (
-          <div className="text-center py-20">
-            <p className="text-gray-400 text-lg">
-              No movies found matching your criteria.
-            </p>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                 <Filter className="w-6 h-6 text-gray-500" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">No movies found</h3>
+            <p className="text-gray-400 max-w-sm">Try adjusting your filters or search terms to find what you're looking for.</p>
+            <button 
+                onClick={() => setFilters({search: "", genre: "", language: "", sort_by: "releaseDate", page: 1})}
+                className="mt-6 text-red-500 hover:text-red-400 text-sm font-semibold hover:underline"
+            >
+                Clear all filters
+            </button>
           </div>
         )}
       </div>

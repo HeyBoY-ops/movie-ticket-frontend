@@ -32,6 +32,38 @@ export const AuthProvider = ({ children }) => {
   };
 
   /* -----------------------------
+            VERIFY USER SESSION
+  ------------------------------ */
+  useEffect(() => {
+    const verifyUser = async () => {
+      const storedToken = localStorage.getItem("token");
+      if (storedToken) {
+        try {
+          // Add Authorization header manually since axios interceptor might not be set yet
+          const { data } = await axios.get("/auth/me", {
+             headers: { Authorization: `Bearer ${storedToken}` } 
+          });
+          
+          if (data.user) {
+             const updatedUser = { ...data.user, token: storedToken }; 
+             // We don't store token inside user object generally, but let's keep consistent with login
+             
+             setUser(data.user); // Update state with fresh data from DB (including new verificationStatus)
+             localStorage.setItem("user", JSON.stringify(data.user)); // Sync local storage
+          }
+        } catch (err) {
+          console.error("Session verification failed:", err);
+          // Optional: Logout if token is invalid? 
+          // logout(); 
+        }
+      }
+      setLoading(false);
+    };
+
+    verifyUser();
+  }, []);
+
+  /* -----------------------------
             LOGIN
   ------------------------------ */
   const login = async (email, password) => {
@@ -47,6 +79,7 @@ export const AuthProvider = ({ children }) => {
         email: decoded.email,
         role: decoded.role,
         name: data.user?.name || "",
+        ...data.user // Merge server data to get latest status
       };
 
       setUser(fullUser);
@@ -55,7 +88,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("user", JSON.stringify(fullUser));
       localStorage.setItem("token", data.token);
 
-      return true;
+      return { user: fullUser, token: data.token };
     } catch (err) {
       throw new Error(err.response?.data?.message || "Invalid credentials");
     } finally {
@@ -83,6 +116,7 @@ export const AuthProvider = ({ children }) => {
         email: decoded.email,
         role: decoded.role,
         name,
+        ...data.user
       };
 
       localStorage.setItem("user", JSON.stringify(fullUser));
@@ -109,6 +143,21 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
   };
 
+  /* -----------------------------
+            REGISTER ORGANIZATION
+  ------------------------------ */
+  const registerOrg = async (dataPayload) => {
+    setLoading(true);
+    try {
+      const { data } = await axios.post("/auth/register-org", dataPayload);
+      return data;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -116,6 +165,7 @@ export const AuthProvider = ({ children }) => {
         token,
         login,
         signup,
+        registerOrg,
         logout,
         isAuthenticated: !!user && !!token,
         loading,

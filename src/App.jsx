@@ -13,10 +13,17 @@ import Events from "./pages/Events";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 import Layout from "./components/Layout";
+import DashboardRouter from "./components/DashboardRouter";
+import UserBookings from "./pages/UserBookings";
+import OrganizationDashboard from "./pages/OrganizationDashboard";
+import RegisterOrganization from "./pages/RegisterOrganization";
+import { Toaster } from "sonner";
+import { Navigate } from "react-router-dom";
 
 export default function App() {
   return (
     <AuthProvider>
+      <Toaster richColors position="top-center" />
       <Router>
         <Routes>
           {/* PUBLIC ROUTES (No Layout) */}
@@ -28,11 +35,20 @@ export default function App() {
               </PublicRoute>
             }
           />
+
           <Route
             path="/signup"
             element={
               <PublicRoute>
                 <Signup />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/register-org"
+            element={
+              <PublicRoute>
+                <RegisterOrganization />
               </PublicRoute>
             }
           />
@@ -80,10 +96,43 @@ export default function App() {
               }
             />
             <Route
-              path="/admin"
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardRouter />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/my-bookings"
+              element={
+                <ProtectedRoute>
+                  <UserBookings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business-analytics"
+              element={
+                <ProtectedRoute>
+                  <OrganizationDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin-overview"
               element={
                 <ProtectedRoute>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Navigate to="/dashboard/admin-overview" replace />
                 </ProtectedRoute>
               }
             />

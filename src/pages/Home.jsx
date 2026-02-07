@@ -1,256 +1,228 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
-import { Play, Info, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, Info, Star, ChevronLeft, ChevronRight, Check, Plus, ThumbsUp } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
-import { API } from "../api";
+import axios from "../api";
+
+const CATEGORIES = ["All", "Movies", "TV Shows", "Sports", "Events"];
 
 export default function Home() {
   const { user } = useContext(AuthContext);
   const { search } = useOutletContext();
   const [movies, setMovies] = useState([]);
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
 
+  // --- FETCH DATA ---
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        const res = await fetch(`${API}/movies`);
-        const data = await res.json();
+        const { data } = await axios.get("/movies");
         setMovies(data.movies || []);
       } catch (error) {
         console.error("Failed to load movies", error);
       }
     };
-
     fetchMovies();
   }, []);
 
+  // --- SCROLL LISTENER ---
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // --- FILTERING ---
   const filteredMovies = useMemo(() => {
-    if (!search) return movies;
-    const term = search.toLowerCase();
-    return movies.filter((movie) =>
-      movie.title?.toLowerCase().includes(term)
-    );
-  }, [movies, search]);
-
-  const heroMovies = useMemo(() => {
-    const source = filteredMovies.length ? filteredMovies : movies;
-    return source.slice(0, 3);
-  }, [filteredMovies, movies]);
-  const [heroIndex, setHeroIndex] = useState(0);
-
-  useEffect(() => {
-    setHeroIndex(0);
-  }, [heroMovies.length]);
-
-  useEffect(() => {
-    if (!heroMovies.length) return;
-    if (heroIndex >= heroMovies.length) {
-      setHeroIndex(0);
+    let result = movies;
+    if (search) {
+      const term = search.toLowerCase();
+      result = result.filter((m) => m.title?.toLowerCase().includes(term));
     }
-  }, [heroMovies.length, heroIndex]);
+    if (activeCategory !== "All") {
+      // Simple genre matching for demo purposes
+      if (activeCategory === "Movies") result = result.filter(m => !m.genre?.includes("Event"));
+      if (activeCategory === "Events") result = result.filter(m => m.genre?.includes("Event") || m.genre?.includes("Concert"));
+      // Add more logic as needed
+    }
+    return result;
+  }, [movies, search, activeCategory]);
 
+  // --- HERO LOGIC ---
+  const heroMovies = useMemo(() => movies.slice(0, 5), [movies]);
+  
   useEffect(() => {
-    if (heroMovies.length < 2) return undefined;
+    if (heroMovies.length < 2) return;
     const interval = setInterval(() => {
       setHeroIndex((prev) => (prev + 1) % heroMovies.length);
     }, 8000);
     return () => clearInterval(interval);
   }, [heroMovies.length]);
 
-  const heroMovie = heroMovies[heroIndex] || heroMovies[0];
-  const heroImage =
-    heroMovie?.backdrop_url ||
-    heroMovie?.banner_url ||
-    heroMovie?.poster_url ||
-    "https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&w=1600&q=80";
-  const newThisWeek = filteredMovies.slice(0, 8);
-  const trending = filteredMovies.slice(8, 16);
-  const international = filteredMovies.slice(16, 24);
-  const eventMovies = useMemo(() => {
-    const events = movies.filter((movie) =>
-      (Array.isArray(movie.genre) ? movie.genre : [])
-        .map((g) => g?.toLowerCase())
-        .some((g) => g && (g.includes("event") || g.includes("concert")))
-    );
-    return events.length ? events.slice(0, 8) : movies.slice(0, 8);
-  }, [movies]);
+  const heroMovie = heroMovies[heroIndex];
 
-  const handleTrailer = (movie) => {
-    if (!movie) return;
-    const trailerUrl = movie.trailer_url?.trim();
-    const url =
-      trailerUrl && trailerUrl.startsWith("http")
-        ? trailerUrl
-        : `https://www.youtube.com/results?search_query=${encodeURIComponent(
-          `${movie.title} trailer`
-        )}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
+  // --- RENDER HELPERS ---
+  const renderHero = () => {
+    if (!heroMovie) return null;
+    const bgImage = heroMovie.backdropUrl || heroMovie.posterUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1600&q=80";
 
-  const renderRow = (title, list, ctaLink = "/movies") => {
-    if (!list.length) return null;
     return (
-      <section className="mt-12">
-        <div className="flex items-center justify-between mb-4 px-4">
-          <h2 className="text-2xl font-semibold tracking-wide">{title}</h2>
-          <Link
-            to={ctaLink}
-            className="text-sm text-gray-300 hover:text-white transition"
-          >
-            View all
-          </Link>
+      <header className="relative h-[90vh] w-full overflow-hidden group">
+        {/* Background Image with Crossfade Support (Conceptual) */}
+        <div className="absolute inset-0 transition-opacity duration-1000 ease-in-out">
+             <img src={bgImage} alt={heroMovie.title} className="w-full h-full object-cover object-center transform scale-105 group-hover:scale-100 transition-transform duration-[20s]" />
         </div>
-        <div className="relative">
-          <div className="flex space-x-4 overflow-x-auto px-4 pb-2 netflix-scroll">
-            {list.map((movie) => (
-              <Link
-                key={movie.id}
-                to={`/movies/${movie.id}`}
-                className="flex-shrink-0 w-48 h-64 rounded-lg overflow-hidden bg-zinc-900 border border-white/5 hover:border-white/20 transition"
-              >
-                <img
-                  src={
-                    movie.poster_url ||
-                    "https://via.placeholder.com/300x450?text=No+Poster"
-                  }
-                  alt={movie.title}
-                  className="w-full h-full object-cover"
+        
+        {/* Radiant Gradient Overlays for Readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_#050505_120%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-96 bg-gradient-to-t from-[#050505] via-[#050505]/60 to-transparent" />
+
+        {/* Content */}
+        <div className="relative z-10 h-full flex flex-col justify-center px-4 md:px-16 max-w-3xl space-y-6 pt-20">
+             {/* Text Animation Wrapper */}
+             <div key={heroMovie.id} className="animate-fade-in-up space-y-6">
+                <div>
+                    <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight drop-shadow-2xl leading-[1.1]">
+                        {heroMovie.title}
+                    </h1>
+                    <div className="flex items-center gap-4 mt-4 text-gray-300 font-medium text-sm md:text-base">
+                        <span className="text-green-400 font-bold">
+                            {heroMovie.rating ? `${Math.round(heroMovie.rating * 10)}% Match` : "New"}
+                        </span>
+                        <span>{new Date(heroMovie.release_date).getFullYear()}</span>
+                        <span className="px-2 py-0.5 border border-gray-500 rounded text-xs bg-black/30 backdrop-blur-sm">HD</span>
+                        <span>{heroMovie.duration} min</span>
+                    </div>
+                </div>
+
+                <p className="text-lg text-gray-200 line-clamp-3 md:line-clamp-2 max-w-2xl leading-relaxed text-shadow">
+                    {heroMovie.description}
+                </p>
+
+                <div className="flex flex-wrap gap-4">
+                    <Link 
+                        to={`/movies/${heroMovie.id}`}
+                        className="flex items-center gap-3 bg-white text-black px-8 py-3.5 rounded-lg font-bold hover:bg-white/90 transition transform hover:scale-105"
+                    >
+                        <Play className="w-6 h-6 fill-black" /> Play
+                    </Link>
+                    <button className="flex items-center gap-3 bg-gray-500/30 backdrop-blur-md text-white px-8 py-3.5 rounded-lg font-bold hover:bg-gray-500/40 transition transform hover:scale-105">
+                        <Info className="w-6 h-6" /> More Info
+                    </button>
+                </div>
+             </div>
+        </div>
+
+        {/* Hero Navigation Dots */}
+        <div className="absolute right-8 bottom-1/3 flex flex-col gap-3 z-20">
+            {heroMovies.map((_, idx) => (
+                <button
+                    key={idx}
+                    onClick={() => setHeroIndex(idx)}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${idx === heroIndex ? "bg-red-600 scale-125" : "bg-white/50 hover:bg-white"}`}
                 />
-              </Link>
             ))}
-          </div>
         </div>
-      </section>
+      </header>
     );
   };
+
+  const MovieCard = ({ movie }) => (
+    <Link 
+        to={`/movies/${movie.id}`}
+        className="flex-shrink-0 w-40 md:w-56 aspect-[2/3] relative rounded-lg overflow-hidden bg-gray-800 border border-white/5 group transition-all duration-300 hover:z-20 hover:scale-110 hover:shadow-2xl hover:shadow-black/50"
+    >
+        <img 
+            src={movie.posterUrl || "https://placehold.co/300x450?text=No+Poster"} 
+            alt={movie.title} 
+            className="w-full h-full object-cover" 
+        />
+        
+        {/* Hover Overlay */}
+        <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end">
+             <div className="flex gap-2 mb-3">
+                 <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-gray-200 transition">
+                     <Play className="w-4 h-4 fill-black text-black" />
+                 </div>
+                 <div className="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center hover:border-white text-gray-300 hover:text-white transition">
+                     <Plus className="w-4 h-4" />
+                 </div>
+                 <div className="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center hover:border-white text-gray-300 hover:text-white transition ml-auto">
+                     <ChevronRight className="w-4 h-4" />
+                 </div>
+             </div>
+             
+             <h4 className="font-bold text-white text-sm leading-tight mb-1">{movie.title}</h4>
+             <div className="flex items-center justify-between text-[10px] text-gray-400 font-medium">
+                 <span className="text-green-400">{movie.rating} Rating</span>
+                 <span>{movie.duration}m</span>
+             </div>
+             <div className="flex gap-1 mt-2 flex-wrap">
+                 {(Array.isArray(movie.genre) ? movie.genre : movie.genre?.split(',') || []).slice(0, 2).map((g, i) => (
+                     <span key={i} className="text-[9px] text-gray-300">• {g}</span>
+                 ))}
+             </div>
+        </div>
+    </Link>
+  );
 
   return (
-    <div className="min-h-screen bg-[#010101] text-white">
-      {/* HERO */}
-      <section className="relative h-[85vh] w-full overflow-hidden">
-        {heroMovie && (
-          <>
-            <img
-              src={heroImage}
-              alt={heroMovie.title}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#010101] via-transparent to-transparent" />
-            <div className="relative z-10 h-full flex flex-col justify-center px-6 lg:px-16 space-y-6 max-w-2xl transition-all duration-700">
-              <p className="uppercase text-red-500 tracking-[0.5em] text-xs">
-                Featured
-              </p>
-              <h1 className="text-5xl sm:text-6xl font-black drop-shadow-xl">
-                {heroMovie.title}
-              </h1>
-              <div className="flex items-center gap-4 text-gray-200 text-sm">
-                <span className="flex items-center gap-1">
-                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                  {heroMovie.rating || "N/A"}
-                </span>
-                <span>{heroMovie.language}</span>
-                <span>{heroMovie.duration} min</span>
-              </div>
-              <p className="text-lg text-gray-200 line-clamp-3">
-                {heroMovie.description}
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  to={heroMovie ? `/movies/${heroMovie.id}` : "/movies"}
-                  className="inline-flex items-center gap-2 bg-white text-black px-6 py-3 rounded-md font-semibold hover:bg-gray-200 transition"
-                >
-                  <Play className="w-5 h-5" /> Play
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => handleTrailer(heroMovie)}
-                  className="inline-flex items-center gap-2 bg-white/20 backdrop-blur px-6 py-3 rounded-md font-semibold hover:bg-white/30 transition"
-                >
-                  <Info className="w-5 h-5" /> Watch Trailer
-                </button>
-              </div>
-              {heroMovies.length > 1 && (
-                <div className="absolute bottom-10 right-10 flex gap-2">
-                  {heroMovies.map((movie, idx) => (
+    <div className="min-h-screen bg-[#050505] text-white font-sans pb-20">
+      {/* 1. HERO SECTION */}
+      {renderHero()}
+
+      <main className="relative z-10 -mt-24 space-y-12 pb-20">
+        
+        {/* 2. CATEGORY FILTER (Sticky) */}
+        {/* 2. CATEGORY FILTER (Sticky) */}
+        <div className={`sticky top-[64px] z-50 transition-all duration-500 ease-in-out ${isScrolled ? 'py-4 bg-[#050505]/95 backdrop-blur-xl shadow-2xl shadow-black/50 border-b border-white/5' : 'py-6'}`}>
+            <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 md:px-16">
+                {CATEGORIES.map(cat => (
                     <button
-                      key={movie.id || idx}
-                      onClick={() => setHeroIndex(idx)}
-                      className={`w-3 h-3 rounded-full transition ${idx === heroIndex
-                        ? "bg-white"
-                        : "bg-white/30 hover:bg-white/60"
+                        key={cat}
+                        onClick={() => setActiveCategory(cat)}
+                        className={`px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
+                            activeCategory === cat 
+                            ? "bg-white text-black" 
+                            : "bg-black/40 backdrop-blur border border-white/30 text-white hover:bg-white/10"
                         }`}
-                      aria-label={`Show ${movie.title}`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {heroMovies.length > 1 && (
-              <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 pointer-events-none">
-                <button
-                  className="pointer-events-auto bg-black/40 hover:bg-black/70 text-white rounded-full p-2 border border-white/20 transition"
-                  onClick={() =>
-                    setHeroIndex((prev) =>
-                      prev === 0 ? heroMovies.length - 1 : prev - 1
-                    )
-                  }
-                  aria-label="Previous featured title"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  className="pointer-events-auto bg-black/40 hover:bg-black/70 text-white rounded-full p-2 border border-white/20 transition"
-                  onClick={() =>
-                    setHeroIndex((prev) => (prev + 1) % heroMovies.length)
-                  }
-                  aria-label="Next featured title"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </section>
-
-      <main className="-mt-24 relative z-20 bg-gradient-to-b from-[#010101]/80 via-[#010101] to-black pt-10 pb-20">
-        {heroMovie && (
-          <div className="px-6 lg:px-12">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg text-gray-300 uppercase tracking-[0.3em]">
-                Because you watched
-              </h2>
-              {!user && (
-                <Link
-                  to="/signup"
-                  className="text-sm text-white border border-white/40 px-4 py-2 rounded-full hover:bg-white hover:text-black transition"
-                >
-                  Join now
-                </Link>
-              )}
-            </div>
-            <div className="mt-4 flex gap-4 text-sm text-gray-400">
-              {Array.isArray(heroMovie.genre) &&
-                heroMovie.genre.slice(0, 3).map((genre) => (
-                  <span
-                    key={genre}
-                    className="px-3 py-1 rounded-full bg-white/10 border border-white/10"
-                  >
-                    {genre}
-                  </span>
+                    >
+                        {cat}
+                    </button>
                 ))}
             </div>
-          </div>
-        )}
-
-        <div className="mt-10 space-y-10">
-          {renderRow("New this week", newThisWeek)}
-          {renderRow("Trending Now", trending)}
-          {renderRow("International Hits", international)}
-          {renderRow("Live Events & Concerts", eventMovies, "/events")}
         </div>
+
+        {/* 3. MOVIE ROWS */}
+        <section>
+            <h2 className="text-xl font-bold text-white mb-4 px-4 md:px-16 flex items-center gap-2 group cursor-pointer">
+                Trending Now 
+                <span className="text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity hover:underline">Explore All &gt;</span>
+            </h2>
+            <div className="flex gap-4 overflow-x-auto pb-8 px-4 md:px-16 netflix-scroll mask-right">
+                {filteredMovies.slice(0, 10).map(m => <MovieCard key={m.id} movie={m} />)}
+            </div>
+        </section>
+
+        <section>
+             <h2 className="text-xl font-bold text-white mb-4 px-4 md:px-16">New Releases</h2>
+             <div className="flex gap-4 overflow-x-auto pb-8 px-4 md:px-16 netflix-scroll mask-right">
+                {filteredMovies.slice(5, 15).map(m => <MovieCard key={m.id} movie={m} />)}
+            </div>
+        </section>
+
+        <section>
+             <h2 className="text-xl font-bold text-white mb-4 px-4 md:px-16">Top Rated Dramas</h2>
+             <div className="flex gap-4 overflow-x-auto pb-8 px-4 md:px-16 netflix-scroll mask-right">
+                {filteredMovies.filter(m => m.genre?.includes("Drama") || m.rating > 7).map(m => <MovieCard key={m.id} movie={m} />)}
+            </div>
+        </section>
+
       </main>
     </div>
   );
 }
+

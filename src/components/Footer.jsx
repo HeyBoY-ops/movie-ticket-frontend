@@ -112,16 +112,24 @@ const Footer = () => {
               <p className="text-sm text-gray-300">
                 Stay in sync with new releases, exclusive drops, and flash deals.
               </p>
-              <div className="flex gap-3">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 input-field bg-white/5 border border-white/10 placeholder:text-gray-500"
-                />
-                <button className="btn-primary whitespace-nowrap flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Notify Me
-                </button>
+              <div className="flex flex-col gap-4">
+                  <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-red-600 to-violet-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
+                    <div className="relative flex bg-black rounded-lg p-1">
+                        <input
+                          type="email"
+                          placeholder="Enter your email"
+                          className="flex-1 bg-transparent text-white px-4 py-3 outline-none placeholder:text-gray-500 text-sm"
+                        />
+                        <button className="bg-white text-black px-6 py-2 rounded-md font-bold text-sm hover:bg-gray-100 transition flex items-center gap-2">
+                           <span className="hidden sm:inline">Notify Me</span>
+                           <Mail className="w-4 h-4" />
+                        </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    We care about your data in our <a href="#" className="underline hover:text-white">Privacy Policy</a>.
+                  </p>
               </div>
             </div>
           </div>
