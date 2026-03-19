@@ -19,7 +19,7 @@ import { toast } from "sonner";
 export default function UserBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("upcoming"); // 'upcoming', 'past', 'cancelled'
+  const [filter, setFilter] = useState("Upcoming"); // 'Upcoming', 'Booking History'
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedQrBooking, setSelectedQrBooking] = useState(null);
 
@@ -63,9 +63,9 @@ export default function UserBookings() {
   const getBookingState = (booking) => {
     if (booking.bookingStatus === 'cancelled') return 'cancelled';
     
-    // Safety check: if fields missing, default to upcoming so user can see it
     const show = booking.show || {};
     const dateStr = show.showDate || show.show_date;
+    const timeStr = show.showTime || show.show_time;
     
     if (!dateStr) return 'upcoming'; 
 
@@ -73,9 +73,27 @@ export default function UserBookings() {
     if (!isValid(showDate)) return 'upcoming';
 
     const now = new Date();
-    // Compare dates (end of day)
-    showDate.setHours(23, 59, 59); 
     
+    // If we have a time, use it for precision
+    if (timeStr && timeStr !== "TBD") {
+        try {
+            const [time, modifier] = timeStr.split(' ');
+            if (time && modifier) {
+                let [hours, minutes] = time.split(':');
+                if (hours === '12') hours = '00';
+                if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+                showDate.setHours(parseInt(hours) || 0, parseInt(minutes) || 0);
+            }
+        } catch (e) {
+            // Fallback to end of day
+            showDate.setHours(23, 59, 59);
+        }
+    } else {
+         // No time? Assume end of day (upcoming until day ends)
+         showDate.setHours(23, 59, 59);
+    }
+    
+    // If showDate is in the past, it's 'past'
     return showDate < now ? 'past' : 'upcoming';
   };
 
@@ -83,13 +101,15 @@ export default function UserBookings() {
      // 1. Status Filter
      const state = getBookingState(booking);
      
-     if (filter === 'cancelled' && state !== 'cancelled') return false;
+     if (filter === 'Upcoming') {
+        // Show only active upcoming bookings
+        return state === 'upcoming';
+     }
      
-     // For 'past', we want confirmed past bookings
-     if (filter === 'past' && (state !== 'past' || booking.bookingStatus === 'cancelled')) return false;
-     
-     // For 'upcoming', we want confirmed upcoming bookings
-     if (filter === 'upcoming' && (state !== 'upcoming' || booking.bookingStatus === 'cancelled')) return false;
+     if (filter === 'Booking History') {
+        // Show Past (completed) OR Cancelled (regardless of date)
+        return state === 'past' || state === 'cancelled';
+     }
 
      // 2. Search Filter
      if (searchQuery) {
@@ -107,7 +127,7 @@ export default function UserBookings() {
     // Count carefully to avoid crash
     const upcoming = bookings.filter(b => {
         try {
-            return getBookingState(b) === 'upcoming' && b.bookingStatus !== 'cancelled';
+            return getBookingState(b) === 'upcoming';
         } catch { return false; }
     }).length;
     return { total, upcoming };
@@ -160,7 +180,7 @@ export default function UserBookings() {
 
             {/* Filter Tabs */}
             <div className="flex bg-[#121212] p-1 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">
-                {['upcoming', 'past', 'cancelled'].map((f) => (
+                {['Upcoming', 'Booking History'].map((f) => (
                     <button
                         key={f}
                         onClick={() => setFilter(f)}
@@ -182,7 +202,7 @@ export default function UserBookings() {
                 <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Film className="w-10 h-10 text-gray-600" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">No {filter} bookings found</h3>
+                <h3 className="text-2xl font-bold text-white mb-2">No {filter.toLowerCase()} bookings found</h3>
                 <p className="text-gray-400 mb-8 max-w-sm mx-auto">Looks like you haven't booked any shows yet. Why not explore what's playing?</p>
                 <Link to="/">
                     <button className="text-[#E50914] hover:text-white font-medium flex items-center gap-2 mx-auto transition-colors">
