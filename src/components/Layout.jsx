@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import ChatWindow from "./Chat/ChatWindow";
 
 const Layout = () => {
   const [search, setSearch] = useState("");
@@ -27,7 +28,9 @@ const Layout = () => {
         <Outlet context={{ search, setSearch, location }} />
       </main>
 
+
       <Footer />
+      <ChatWindow />
     </div>
   );
 };

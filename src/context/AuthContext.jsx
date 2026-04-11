@@ -53,8 +53,7 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (err) {
           console.error("Session verification failed:", err);
-          // Optional: Logout if token is invalid? 
-          // logout(); 
+          logout(); 
         }
       }
       setLoading(false);

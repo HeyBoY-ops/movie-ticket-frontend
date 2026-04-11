@@ -955,7 +955,7 @@ const MoviesTable = ({
                             <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
                                 <span>{m.duration} mins</span>
                                 <span>•</span>
-                                <span>{new Date(m.release_date).getFullYear()}</span>
+                                <span>{m.release_date ? new Date(m.release_date).getFullYear() : 'N/A'}</span>
                             </div>
                         </div>
                     </div>

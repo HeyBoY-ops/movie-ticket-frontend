@@ -92,7 +92,7 @@ export default function Home() {
                         <span className="text-green-400 font-bold">
                             {heroMovie.rating ? `${Math.round(heroMovie.rating * 10)}% Match` : "New"}
                         </span>
-                        <span>{new Date(heroMovie.release_date).getFullYear()}</span>
+                        <span>{new Date(heroMovie.releaseDate || heroMovie.release_date || new Date()).getFullYear()}</span>
                         <span className="px-2 py-0.5 border border-gray-500 rounded text-xs bg-black/30 backdrop-blur-sm">HD</span>
                         <span>{heroMovie.duration} min</span>
                     </div>
